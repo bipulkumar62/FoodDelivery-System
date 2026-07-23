@@ -10,6 +10,8 @@ import 'screens/checkout/checkout_screen.dart';
 import 'screens/order_success/order_success_screen.dart';
 import 'screens/my_orders/my_orders_screen.dart';
 import 'screens/settings/settings_screen.dart';
+import 'screens/admin/admin_login_screen.dart';
+import 'screens/admin/admin_orders_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -49,6 +51,12 @@ class PawanBiryaniApp extends StatelessWidget {
         return MaterialPageRoute(builder: (_) => const MyOrdersScreen());
       case '/settings':
         return MaterialPageRoute(builder: (_) => const SettingsScreen());
+      case '/admin-login':
+        return MaterialPageRoute(
+            builder: (_) => const AdminLoginScreen());
+      case '/admin-orders':
+        return MaterialPageRoute(
+            builder: (_) => const AdminOrdersScreen());
       default:
         return MaterialPageRoute(builder: (_) => const MainShell());
     }

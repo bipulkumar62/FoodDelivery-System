@@ -1,9 +1,20 @@
 import 'package:flutter/material.dart';
 import '../../config/theme.dart';
 import '../../config/constants.dart';
+import '../admin/admin_login_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
+
+  Future<void> _openAdmin(BuildContext context) async {
+    final loggedIn = await isAdminLoggedIn();
+    if (!context.mounted) return;
+    if (loggedIn) {
+      Navigator.pushNamed(context, '/admin-orders');
+    } else {
+      Navigator.pushNamed(context, '/admin-login');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -12,6 +23,11 @@ class SettingsScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          _buildMenuItem(
+            icon: Icons.admin_panel_settings,
+            title: 'Restaurant Admin',
+            onTap: () => _openAdmin(context),
+          ),
           _buildMenuItem(
             icon: Icons.privacy_tip_outlined,
             title: 'Privacy Policy',

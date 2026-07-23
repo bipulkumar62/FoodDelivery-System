@@ -6,4 +6,6 @@ class AppRoutes {
   static const String orderSuccess = '/order-success';
   static const String myOrders = '/my-orders';
   static const String settings = '/settings';
+  static const String adminLogin = '/admin-login';
+  static const String adminOrders = '/admin-orders';
 }
