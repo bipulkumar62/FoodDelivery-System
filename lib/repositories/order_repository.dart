@@ -15,7 +15,7 @@ class OrderRepository {
     double? latitude,
     double? longitude,
   }) async {
-    final json = await _client.post('/orders', data: {
+    final body = {
       'customerName': customerName,
       'phone': phone,
       'address': address,
@@ -24,7 +24,9 @@ class OrderRepository {
       'items': items,
       if (latitude != null) 'latitude': latitude,
       if (longitude != null) 'longitude': longitude,
-    });
+    };
+    print('[placeOrder] sending latitude: $latitude, longitude: $longitude');
+    final json = await _client.post('/orders', data: body);
     final data = json['data'] as Map<String, dynamic>;
     return Order.fromJson(data);
   }
