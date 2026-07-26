@@ -12,6 +12,8 @@ class OrderRepository {
     String? landmark,
     String? notes,
     required List<Map<String, dynamic>> items,
+    double? latitude,
+    double? longitude,
   }) async {
     final json = await _client.post('/orders', data: {
       'customerName': customerName,
@@ -20,6 +22,8 @@ class OrderRepository {
       if (landmark != null) 'landmark': landmark,
       if (notes != null) 'notes': notes,
       'items': items,
+      if (latitude != null) 'latitude': latitude,
+      if (longitude != null) 'longitude': longitude,
     });
     final data = json['data'] as Map<String, dynamic>;
     return Order.fromJson(data);
@@ -33,7 +37,7 @@ class OrderRepository {
 
   Future<List<Order>> getOrdersByPhone(String phone) async {
     final json = await _client.get('/orders/phone/$phone');
-    final data = json['data'] as List<dynamic>;
+    final List<dynamic> data = json is List ? json : (json['data'] as List<dynamic>? ?? []);
     return data.map((e) => Order.fromJson(e as Map<String, dynamic>)).toList();
   }
 }

@@ -38,13 +38,13 @@ class ApiClient {
     _dio.options.headers.remove('Authorization');
   }
 
-  Future<Map<String, dynamic>> get(
+  Future<dynamic> get(
     String path, {
     Map<String, dynamic>? queryParameters,
   }) async {
     try {
       final response = await _dio.get(path, queryParameters: queryParameters);
-      return response.data as Map<String, dynamic>;
+      return response.data;
     } on DioException catch (e) {
       throw e.error ?? ApiException(message: 'Request failed');
     }

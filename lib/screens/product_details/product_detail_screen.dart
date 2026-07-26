@@ -57,7 +57,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
               height: 280,
               width: double.infinity,
               decoration: BoxDecoration(
-                color: AppTheme.primaryColor.withValues(alpha: 0.08),
+                color: AppTheme.primaryColor.withOpacity(0.08),
               ),
               child: item.image.isNotEmpty
                   ? CachedNetworkImage(
@@ -74,7 +74,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                           style: TextStyle(
                             fontSize: 120,
                             fontWeight: FontWeight.bold,
-                            color: AppTheme.primaryColor.withValues(alpha: 0.15),
+                            color: AppTheme.primaryColor.withOpacity(0.15),
                           ),
                         ),
                       ),
@@ -85,7 +85,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                         style: TextStyle(
                           fontSize: 120,
                           fontWeight: FontWeight.bold,
-                          color: AppTheme.primaryColor.withValues(alpha: 0.15),
+                          color: AppTheme.primaryColor.withOpacity(0.15),
                         ),
                       ),
                     ),
@@ -164,7 +164,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
           color: Colors.white,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
+              color: Colors.black.withOpacity(0.05),
               blurRadius: 10,
               offset: const Offset(0, -4),
             ),

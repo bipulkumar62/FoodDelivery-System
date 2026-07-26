@@ -15,49 +15,34 @@ class FloatingCartButton extends ConsumerWidget {
 
     if (cartItems.isEmpty) return const SizedBox.shrink();
 
-    return Positioned(
-      bottom: 80,
-      left: 16,
-      right: 16,
-      child: Material(
-        elevation: 8,
-        borderRadius: BorderRadius.circular(16),
-        color: AppTheme.primaryColor,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(16),
-          onTap: () => Navigator.pushNamed(context, AppRoutes.cart),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-            child: Row(
-              children: [
-                Badge(
-                  label: Text('$totalItems'),
-                  child: const Icon(Icons.shopping_cart,
-                      color: Colors.white, size: 24),
-                ),
-                const SizedBox(width: 12),
-                const Expanded(
-                  child: Text(
-                    'View Cart',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-                Text(
-                  formatPrice(ref.watch(cartGrandTotalProvider)),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
+    return FloatingActionButton.extended(
+      onPressed: () => Navigator.pushNamed(context, AppRoutes.cart),
+      backgroundColor: AppTheme.primaryColor,
+      elevation: 8,
+      icon: Badge(
+        label: Text('$totalItems'),
+        child: const Icon(Icons.shopping_cart, color: Colors.white, size: 24),
+      ),
+      label: Row(
+        children: [
+          const Text(
+            'View Cart',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
             ),
           ),
-        ),
+          const SizedBox(width: 12),
+          Text(
+            formatPrice(ref.watch(cartGrandTotalProvider)),
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
       ),
     );
   }

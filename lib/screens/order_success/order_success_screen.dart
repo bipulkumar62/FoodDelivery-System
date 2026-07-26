@@ -22,7 +22,7 @@ class OrderSuccessScreen extends StatelessWidget {
                 width: 120,
                 height: 120,
                 decoration: BoxDecoration(
-                  color: AppTheme.successColor.withValues(alpha: 0.1),
+                  color: AppTheme.successColor.withOpacity(0.1),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
@@ -55,10 +55,10 @@ class OrderSuccessScreen extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: AppTheme.primaryColor.withValues(alpha: 0.05),
+                    color: AppTheme.primaryColor.withOpacity(0.05),
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                        color: AppTheme.primaryColor.withValues(alpha: 0.1)),
+                        color: AppTheme.primaryColor.withOpacity(0.1)),
                   ),
                   child: Column(
                     children: [
@@ -154,9 +154,12 @@ class OrderSuccessScreen extends StatelessWidget {
     );
   }
 
+  DateTime _toIst(DateTime dt) => dt.toUtc().add(const Duration(hours: 5, minutes: 30));
+
   String _formatTime(DateTime dt) {
-    final hour = dt.hour.toString().padLeft(2, '0');
-    final minute = dt.minute.toString().padLeft(2, '0');
+    final ist = _toIst(dt);
+    final hour = ist.hour.toString().padLeft(2, '0');
+    final minute = ist.minute.toString().padLeft(2, '0');
     return '$hour:$minute';
   }
 }

@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../config/theme.dart';
 
 const _adminKey = 'admin_logged_in';
+const _tokenKey = 'admin_token';
 
 class AdminLoginScreen extends StatefulWidget {
   const AdminLoginScreen({super.key});
@@ -12,43 +13,53 @@ class AdminLoginScreen extends StatefulWidget {
 }
 
 class _AdminLoginScreenState extends State<AdminLoginScreen> {
-  final _nameController = TextEditingController();
+  final _mobileController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
   bool _isLoading = false;
   String? _errorMessage;
 
+  // Hardcoded admin credentials
+  static const String _adminMobile = '9199998028';
+  static const String _adminPassword = 'pawan@70000000';
+
   @override
   void dispose() {
-    _nameController.dispose();
+    _mobileController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
   Future<void> _login() async {
-    final name = _nameController.text.trim().toLowerCase();
+    final mobile = _mobileController.text.trim();
     final password = _passwordController.text;
 
-    if (name.isEmpty || password.isEmpty) {
-      setState(() => _errorMessage = 'Please enter name and password');
+    if (mobile.isEmpty || password.isEmpty) {
+      setState(() => _errorMessage = 'Please enter mobile number and password');
       return;
     }
 
-    final valid = (name == 'yash' && password == 'yash@70000000') ||
-        (name == 'pawan' && password == 'pawan@70000000');
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
 
-    if (!valid) {
-      setState(() => _errorMessage = 'Invalid admin credentials.');
-      return;
+    // Validate against hardcoded credentials
+    await Future.delayed(const Duration(milliseconds: 500)); // Simulate network delay
+
+    if (mobile == _adminMobile && password == _adminPassword) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_adminKey, true);
+      await prefs.setString(_tokenKey, 'admin_token_${DateTime.now().millisecondsSinceEpoch}');
+
+      if (!mounted) return;
+      Navigator.pushReplacementNamed(context, '/admin-orders');
+    } else {
+      if (!mounted) return;
+      setState(() => _errorMessage = 'Invalid mobile number or password');
     }
 
-    setState(() => _isLoading = true);
-
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_adminKey, true);
-
-    if (!mounted) return;
-    Navigator.pushReplacementNamed(context, '/admin-orders');
+    if (mounted) setState(() => _isLoading = false);
   }
 
   @override
@@ -64,7 +75,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                 width: 80,
                 height: 80,
                 decoration: BoxDecoration(
-                  color: AppTheme.primaryColor.withValues(alpha: 0.1),
+                  color: AppTheme.primaryColor.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: const Icon(
@@ -75,7 +86,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
               ),
               const SizedBox(height: 24),
               const Text(
-                'Admin Login',
+                'Restaurant Admin Login',
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
@@ -88,7 +99,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                   width: double.infinity,
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: AppTheme.errorColor.withValues(alpha: 0.1),
+                    color: AppTheme.errorColor.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
@@ -103,12 +114,12 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
               ],
               const SizedBox(height: 32),
               TextField(
-                controller: _nameController,
+                controller: _mobileController,
                 decoration: const InputDecoration(
-                  labelText: 'Admin Name',
-                  prefixIcon: Icon(Icons.person_outline),
+                  labelText: 'Mobile Number',
+                  prefixIcon: Icon(Icons.phone_outlined),
                 ),
-                textCapitalization: TextCapitalization.words,
+                keyboardType: TextInputType.phone,
               ),
               const SizedBox(height: 16),
               TextField(
@@ -158,7 +169,13 @@ Future<bool> isAdminLoggedIn() async {
   return prefs.getBool(_adminKey) ?? false;
 }
 
+Future<String?> getAdminToken() async {
+  final prefs = await SharedPreferences.getInstance();
+  return prefs.getString(_tokenKey);
+}
+
 Future<void> adminLogout() async {
   final prefs = await SharedPreferences.getInstance();
   await prefs.remove(_adminKey);
+  await prefs.remove(_tokenKey);
 }

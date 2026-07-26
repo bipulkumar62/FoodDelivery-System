@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import '../../services/socket_service.dart';
 import '../../providers/order_provider.dart';
 import '../../widgets/order_status_chip.dart';
 import '../../widgets/empty_state.dart';
@@ -36,9 +37,39 @@ class MyOrdersScreen extends ConsumerWidget {
   }
 }
 
-class _OrdersBody extends ConsumerWidget {
+class _OrdersBody extends ConsumerStatefulWidget {
+  const _OrdersBody();
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_OrdersBody> createState() => _OrdersBodyState();
+}
+
+class _OrdersBodyState extends ConsumerState<_OrdersBody> {
+  final SocketService _socketService = SocketService.instance;
+
+  @override
+  void initState() {
+    super.initState();
+    _initSocket();
+  }
+
+  @override
+  void dispose() {
+    _socketService.offOrderStatusUpdate();
+    super.dispose();
+  }
+
+  void _initSocket() {
+    _socketService.connect();
+    _socketService.onOrderStatusUpdate((data) {
+      if (mounted) {
+        ref.invalidate(ordersByPhoneProvider);
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final ordersAsync = ref.watch(ordersByPhoneProvider);
 
     return RefreshIndicator(
@@ -228,7 +259,7 @@ class _OrderCard extends StatelessWidget {
 
   Widget _itemPlaceholder(String name) {
     return Container(
-      color: AppTheme.primaryColor.withValues(alpha: 0.1),
+      color: AppTheme.primaryColor.withOpacity(0.1),
       alignment: Alignment.center,
       child: Text(
         name.isNotEmpty ? name[0].toUpperCase() : '?',
@@ -265,17 +296,21 @@ class _OrderCard extends StatelessWidget {
     );
   }
 
+  DateTime _toIst(DateTime dt) => dt.toUtc().add(const Duration(hours: 5, minutes: 30));
+
   String _formatDate(DateTime dt) {
-    final day = dt.day.toString().padLeft(2, '0');
-    final month = dt.month.toString().padLeft(2, '0');
-    final hour = dt.hour.toString().padLeft(2, '0');
-    final minute = dt.minute.toString().padLeft(2, '0');
-    return '$day/$month/${dt.year} $hour:$minute';
+    final ist = _toIst(dt);
+    final day = ist.day.toString().padLeft(2, '0');
+    final month = ist.month.toString().padLeft(2, '0');
+    final hour = ist.hour.toString().padLeft(2, '0');
+    final minute = ist.minute.toString().padLeft(2, '0');
+    return '$day/$month/${ist.year} $hour:$minute';
   }
 
   String _formatTime(DateTime dt) {
-    final hour = dt.hour.toString().padLeft(2, '0');
-    final minute = dt.minute.toString().padLeft(2, '0');
+    final ist = _toIst(dt);
+    final hour = ist.hour.toString().padLeft(2, '0');
+    final minute = ist.minute.toString().padLeft(2, '0');
     return '$hour:$minute';
   }
 }

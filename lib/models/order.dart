@@ -85,6 +85,8 @@ class Order {
   final DateTime? expiresAt;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final double? latitude;
+  final double? longitude;
 
   Order({
     required this.id,
@@ -105,6 +107,8 @@ class Order {
     this.expiresAt,
     required this.createdAt,
     required this.updatedAt,
+    this.latitude,
+    this.longitude,
   });
 
   factory Order.fromJson(Map<String, dynamic> json) {
@@ -138,6 +142,8 @@ class Order {
       updatedAt: json['updatedAt'] != null
           ? DateTime.parse(json['updatedAt'] as String)
           : DateTime.now(),
+      latitude: (json['latitude'] as num?)?.toDouble(),
+      longitude: (json['longitude'] as num?)?.toDouble(),
     );
   }
 }

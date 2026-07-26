@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/cart_provider.dart';
 import '../../providers/order_provider.dart';
+import '../../services/location_service.dart';
 import '../../config/theme.dart';
 import '../../config/routes.dart';
 import '../../utils/helpers.dart';
@@ -21,18 +22,85 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   final _addressController = TextEditingController();
   final _landmarkController = TextEditingController();
   bool _isPlacing = false;
+  bool _locationLoading = true;
+  String? _locationError;
+  double? _latitude;
+  double? _longitude;
+
+  // Restaurant location (fixed)
+  static const double _restaurantLat = LocationService.restaurantLat;
+  static const double _restaurantLng = LocationService.restaurantLng;
 
   @override
-  void dispose() {
-    _nameController.dispose();
-    _phoneController.dispose();
-    _addressController.dispose();
-    _landmarkController.dispose();
-    super.dispose();
+  void initState() {
+    super.initState();
+    _initLocation();
+  }
+
+  Future<void> _initLocation() async {
+    setState(() => _locationLoading = true);
+    final hasPermission = await LocationService.requestPermission();
+    if (!hasPermission) {
+      if (mounted) {
+        setState(() {
+          _locationLoading = false;
+          _locationError = 'Location permission is required for delivery. Please enable it in settings.';
+        });
+      }
+      return;
+    }
+
+    final position = await LocationService.getCurrentLocation();
+    if (position == null) {
+      if (mounted) {
+        setState(() {
+          _locationLoading = false;
+          _locationError = 'Unable to get your location. Please enable GPS and try again.';
+        });
+      }
+      return;
+    }
+
+    final distance = LocationService.calculateDistance(
+      _restaurantLat, _restaurantLng,
+      position.latitude, position.longitude,
+    );
+
+    if (distance > 15.0) {
+      if (mounted) {
+        setState(() {
+          _locationLoading = false;
+          _locationError = 'Sorry, we are currently not available in your area. We\'ll be available soon.';
+        });
+      }
+      return;
+    }
+
+    if (mounted) {
+      setState(() {
+        _latitude = position.latitude;
+        _longitude = position.longitude;
+        _locationLoading = false;
+        _locationError = null;
+      });
+    }
   }
 
   Future<void> _placeOrder() async {
     if (!_formKey.currentState!.validate()) return;
+
+    if (_latitude == null || _longitude == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(_locationError ?? 'Location not available. Please try again.'),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: AppTheme.errorColor,
+          ),
+        );
+      }
+      return;
+    }
 
     setState(() => _isPlacing = true);
 
@@ -52,6 +120,8 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                 ? null
                 : _landmarkController.text.trim(),
             items: items,
+            latitude: _latitude,
+            longitude: _longitude,
           );
 
       ref.read(cartProvider.notifier).clearCart();
@@ -83,6 +153,95 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     }
   }
 
+  Widget _buildLocationStatus() {
+    if (_locationLoading) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppTheme.primaryColor.withOpacity(0.05),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            const SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              'Getting your location...',
+              style: TextStyle(
+                fontSize: 16,
+                color: AppTheme.textPrimary,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_locationError != null) {
+      return Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppTheme.errorColor.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppTheme.errorColor.withOpacity(0.3)),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.error_outline, color: AppTheme.errorColor),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    _locationError!,
+                    style: TextStyle(
+                      color: AppTheme.errorColor,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+        ],
+      );
+    }
+
+    if (_latitude != null && _longitude != null) {
+      return Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.green.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.green.withOpacity(0.3)),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.location_on, color: Colors.green),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Location verified - within delivery range',
+                style: TextStyle(
+                  color: Colors.green.shade700,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return const SizedBox.shrink();
+  }
+
   @override
   Widget build(BuildContext context) {
     final subtotal = ref.watch(cartSubtotalProvider);
@@ -99,13 +258,14 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              _buildLocationStatus(),
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: AppTheme.primaryColor.withValues(alpha: 0.05),
+                  color: AppTheme.primaryColor.withOpacity(0.05),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                      color: AppTheme.primaryColor.withValues(alpha: 0.1)),
+                      color: AppTheme.primaryColor.withOpacity(0.1)),
                 ),
                 child: Column(
                   children: [

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'config/theme.dart';
 import 'models/food_item.dart';
 import 'network/api_client.dart';
+import 'services/location_service.dart';
 import 'screens/home/home_screen.dart';
 import 'screens/product_details/product_detail_screen.dart';
 import 'screens/cart/cart_screen.dart';
@@ -16,6 +18,14 @@ import 'screens/admin/admin_orders_screen.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   ApiClient.instance.init();
+  
+  // Restore admin token if exists
+  final prefs = await SharedPreferences.getInstance();
+  final token = prefs.getString('admin_token');
+  if (token != null && token.isNotEmpty) {
+    ApiClient.instance.setToken(token);
+  }
+  
   runApp(const ProviderScope(child: PawanBiryaniApp()));
 }
 
@@ -78,6 +88,46 @@ class _MainShellState extends State<MainShell> {
     const MyOrdersScreen(),
     const SettingsScreen(),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _requestLocationPermissionAtStart();
+  }
+
+  Future<void> _requestLocationPermissionAtStart() async {
+    final granted = await LocationService.requestPermission();
+    if (!mounted) return;
+    if (!granted) {
+      final permanentlyDenied = await LocationService.isPermissionPermanentlyDenied();
+      if (!mounted) return;
+      if (permanentlyDenied) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Location Permission Required'),
+            content: const Text(
+              'Location permission is required for delivery. Please enable it in app settings.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: const Text('OK'),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.of(ctx).pop();
+                  LocationService.openLocationSettings();
+                },
+                child: const Text('Open Settings'),
+              ),
+            ],
+          ),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {

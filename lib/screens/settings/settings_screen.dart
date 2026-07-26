@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../config/theme.dart';
 import '../../config/constants.dart';
 import '../admin/admin_login_screen.dart';
@@ -50,14 +51,44 @@ class SettingsScreen extends StatelessWidget {
             icon: Icons.contact_support_outlined,
             title: 'Contact',
             onTap: () => _showInfo(context, 'Contact Us',
-                'Phone: +91 98765 43210\nEmail: info@pawanbiryani.com\nAddress: 123, MG Road, Indore, MP'),
+                'Phone: +91 99999 8028\nAddress: Lalit bus stand, Police Line, Siwan, Bihar 841226'),
+          ),
+          const Divider(height: 24),
+          const Text(
+            'Follow Us',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: AppTheme.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 8),
+          _buildMenuItem(
+            icon: Icons.camera_alt_outlined,
+            title: 'Instagram',
+            onTap: () => _launchUrl('https://www.instagram.com/pawanbiryani/'),
+          ),
+          _buildMenuItem(
+            icon: Icons.facebook,
+            title: 'Facebook',
+            onTap: () => _launchUrl('https://www.facebook.com/PawanbiryaniSiwan/'),
+          ),
+          _buildMenuItem(
+            icon: Icons.local_dining_outlined,
+            title: 'Zomato',
+            onTap: () => _launchUrl('https://www.zomato.com/siwan/pawan-biryani-siwan-locality/order'),
+          ),
+          _buildMenuItem(
+            icon: Icons.restaurant_menu,
+            title: 'Swiggy',
+            onTap: () => _launchUrl('https://www.swiggy.com/city/siwan/pawan-biryani-fathepur-rest1042544'),
           ),
           const Divider(height: 32),
           Center(
             child: Text(
               'Version 1.0.0',
               style: TextStyle(
-                color: AppTheme.textSecondary.withValues(alpha: 0.6),
+                color: AppTheme.textSecondary.withOpacity(0.6),
                 fontSize: 13,
               ),
             ),
@@ -67,7 +98,7 @@ class SettingsScreen extends StatelessWidget {
             child: Text(
               AppConstants.appName,
               style: TextStyle(
-                color: AppTheme.textSecondary.withValues(alpha: 0.4),
+                color: AppTheme.textSecondary.withOpacity(0.4),
                 fontSize: 12,
               ),
             ),
@@ -117,6 +148,13 @@ class SettingsScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _launchUrl(String url) async {
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
   }
 }
 

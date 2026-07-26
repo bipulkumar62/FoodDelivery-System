@@ -17,9 +17,9 @@ class OrderStatusChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       decoration: BoxDecoration(
-        color: _backgroundColor.withValues(alpha: 0.15),
+        color: _backgroundColor.withOpacity(0.15),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: _backgroundColor.withValues(alpha: 0.3)),
+        border: Border.all(color: _backgroundColor.withOpacity(0.3)),
       ),
       child: Text(
         _label,
