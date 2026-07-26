@@ -1,233 +1,465 @@
-# 🍽️ Pawan Biryani Ordering System
+# FoodDelivery-System 🍽️
 
-A full-stack restaurant ordering system built for **Pawan Biryani**. The project allows customers to place orders from a mobile app while the restaurant owner manages incoming orders through an admin panel in real time.
+A production-ready food delivery platform built for local restaurants.
+The system includes a customer mobile application, restaurant admin dashboard, backend API, order management, delivery location tracking, and automated order lifecycle management.
+
+---
+
+## 🚀 Overview
+
+FoodDelivery-System is a full-stack food ordering solution designed for small and medium-sized restaurants.
+
+Customers can browse menus, place Cash on Delivery orders, share delivery location, and track their orders.
+
+Restaurant admins can manage incoming orders, update order status, view revenue, and open customer delivery locations directly in Google Maps.
 
 ---
 
 ## ✨ Features
 
-### 👤 Customer App
-- Browse menu
-- Add items to cart
-- Place orders
-- Order confirmation
-- View order status
-- Responsive and modern UI
+### Customer Application
 
-### 👨‍💼 Admin Panel
-- Secure admin login
-- View all incoming orders
-- Update order status
-- Manage completed and cancelled orders
-- Revenue dashboard
-- Automatic order management
-- Real-time order updates (planned)
+* Browse restaurant menu
+* View food images and details
+* Add items to cart
+* Place Cash on Delivery orders
+* Automatic location permission request
+* GPS-based delivery area validation
+* 15 km delivery radius restriction
+* Save customer delivery coordinates
+* View previous orders using phone number
+* Order status tracking
 
 ---
 
-## 🛠 Tech Stack
+### Restaurant Admin Dashboard
 
-### Frontend
-- Flutter
-- Dart
-- Material Design
-
-### Backend
-- Node.js
-- Express.js
-- TypeScript
-- REST API
-
-### Database
-- MongoDB Atlas
-- Mongoose
-
-### Deployment
-- Render
-- GitHub
-
----
-
-## 📁 Project Structure
+* Secure admin login
+* View all customer orders
+* Real-time order management
+* Update order status:
 
 ```
-Pawan-Biryani/
+Pending
+↓
+Accepted
+↓
+Preparing
+↓
+Out For Delivery
+↓
+Delivered
+```
+
+* View order details
+* View total revenue
+* Open customer location in Google Maps
+* Track customer using saved latitude and longitude
+* Manage restaurant operations
+
+---
+
+## 🏗️ System Architecture
+
+```
+                Customer App
+                    |
+                    |
+              REST API
+                    |
+                    |
+              Node.js Backend
+                    |
+        -----------------------
+        |                     |
+    MongoDB Atlas        Supabase Storage
+        |
+        |
+   Admin Dashboard
+```
+
+---
+
+# 🛠️ Tech Stack
+
+## Frontend (Customer App)
+
+* Flutter
+* Dart
+* Riverpod State Management
+* REST API Integration
+* Google Maps Integration
+* Location Services
+
+---
+
+## Backend
+
+* Node.js
+* Express.js
+* TypeScript
+* MongoDB
+* Mongoose
+* JWT Authentication
+* REST API Architecture
+
+---
+
+## Database & Storage
+
+### MongoDB Atlas
+
+Used for:
+
+* Users
+* Orders
+* Menu Items
+* Order history
+
+### Supabase Storage
+
+Used for:
+
+* Food images
+* Restaurant assets
+
+---
+
+# 📂 Project Structure
+
+```
+FoodDelivery-System
+
 │
-├── frontend/
-│   ├── customer_app/
-│   └── admin_app/
+├── backend
 │
-├── backend/
-│   ├── controllers/
-│   ├── routes/
-│   ├── models/
-│   ├── middleware/
-│   ├── services/
+│   ├── src
+│   │
+│   ├── controllers
+│   ├── services
+│   ├── repositories
+│   ├── models
+│   ├── routes
+│   ├── middleware
 │   └── server.ts
+│
+│
+├── mobile-app
+│
+│   ├── lib
+│   │
+│   ├── screens
+│   ├── models
+│   ├── providers
+│   ├── repositories
+│   └── services
+│
 │
 └── README.md
 ```
 
 ---
 
-## 🚀 Features Implemented
+# ⚙️ Backend Setup
 
-- Customer order placement
-- Backend REST APIs
-- MongoDB integration
-- Admin authentication
-- Order management
-- Revenue calculation
-- Status updates
-- Render deployment
-- Production-ready API structure
-- Error handling
-- Environment variable configuration
+## Requirements
 
----
+Install:
 
-## 📡 API Overview
+* Node.js 20+
+* MongoDB Atlas Account
+* Git
 
-| Method | Endpoint | Description |
-|---------|----------|-------------|
-| GET | /api/v1/menu | Get menu |
-| POST | /api/v1/orders | Create order |
-| GET | /api/v1/orders | Get all orders |
-| PUT | /api/v1/orders/:id | Update order |
-| DELETE | /api/v1/orders/:id | Delete order |
-
----
-
-## ⚙️ Installation
-
-### Clone Repository
+Clone repository:
 
 ```bash
-git clone https://github.com/yourusername/pawan-biryani.git
+git clone https://github.com/yourusername/FoodDelivery-System.git
 ```
 
-### Backend
+Navigate:
 
 ```bash
 cd backend
+```
+
+Install dependencies:
+
+```bash
 npm install
+```
+
+---
+
+
+# ▶️ Run Backend
+
+Development:
+
+```bash
 npm run dev
 ```
 
-### Frontend
+Production build:
+
+```bash
+npm run build
+```
+
+Start:
+
+```bash
+npm start
+```
+
+Backend runs:
+
+```
+http://localhost:4000
+```
+
+---
+
+# 📱 Flutter App Setup
+
+Navigate:
+
+```bash
+cd mobile-app
+```
+
+Install packages:
 
 ```bash
 flutter pub get
+```
+
+Run:
+
+```bash
 flutter run
 ```
 
 ---
 
-## 🔐 Environment Variables
+# 🌍 Location System
 
-Create a `.env` file inside the backend.
+The application uses GPS coordinates for delivery validation.
 
-```env
-PORT=5000
+Flow:
 
-MONGODB_URI=your_mongodb_connection_string
+```
+Customer opens checkout
+        |
+        |
+Request location permission
+        |
+        |
+Get GPS coordinates
+        |
+        |
+Calculate distance from restaurant
+        |
+        |
+Allow order if within 15 km
+```
 
-JWT_SECRET=your_secret_key
+Stored data:
 
-NODE_ENV=production
+```
+latitude
+longitude
+address
+```
+
+Admin can open:
+
+```
+Google Maps
+↓
+Customer exact coordinates
 ```
 
 ---
 
-## 📱 Screens
+# 🗺️ Google Maps Integration
 
-- Splash Screen
-- Home
-- Menu
-- Cart
-- Checkout
-- Order Success
-- Admin Login
-- Admin Dashboard
-- Orders
-- Revenue Dashboard
-
----
-
-## 📌 Roadmap
-
-- [ ] Socket.IO real-time updates
-- [ ] Push notifications
-- [ ] Payment gateway
-- [ ] Delivery partner app
-- [ ] Analytics dashboard
-- [ ] Banner management
-- [ ] Customer authentication
-- [ ] Search & filters
-- [ ] Coupons & offers
-- [ ] Multi-restaurant support
-
----
-
-## 📈 Architecture
+Customer location opens using:
 
 ```
-Flutter App
-      │
-      ▼
- REST API
-      │
-      ▼
-Express + Node.js
-      │
-      ▼
- MongoDB Atlas
-      │
-      ▼
- Admin Dashboard
+https://www.google.com/maps/search/?api=1&query=LATITUDE,LONGITUDE
+```
+
+Example:
+
+```
+https://www.google.com/maps/search/?api=1&query=26.2200986,84.3471717
 ```
 
 ---
 
-## 💻 Development
+# 🗄️ Database Models
 
-```bash
-npm install
-npm run dev
+## Order Model
+
+Stores:
+
+```
+orderId
+customerName
+phone
+address
+items
+subtotal
+deliveryCharge
+total
+paymentMethod
+paymentStatus
+orderStatus
+latitude
+longitude
+createdAt
+updatedAt
 ```
 
-Build Flutter
+---
 
-```bash
-flutter build apk
+# ⏳ Automatic Order Cleanup
+
+Completed orders are automatically removed.
+
+Implementation:
+
+MongoDB TTL Index
+
+Rules:
+
+```
+Delivered orders
+Cancelled orders
+
+↓
+After 24 hours
+
+↓
+Automatically deleted
+```
+
+Pending and processing orders are never deleted.
+
+---
+
+# 🔌 API Endpoints
+
+## Menu
+
+GET
+
+```
+/api/v1/menu
 ```
 
 ---
 
-## 🤝 Contributing
+## Create Order
 
-Contributions, feature requests, and suggestions are welcome.
+POST
 
-1. Fork the repository
-2. Create a new branch
-3. Commit your changes
-4. Push the branch
-5. Open a Pull Request
+```
+/api/v1/orders
+```
 
 ---
 
-## 📄 License
+## Get Order By ID
 
-This project is licensed under the MIT License.
+GET
 
----
-
-## 👨‍💻 Author
-
-**Yash**
-
-Computer Science Student • Flutter Developer • Backend Developer • AI Enthusiast
+```
+/api/v1/orders/:id
+```
 
 ---
 
-⭐ If you found this project useful, consider giving it a star!
+## Get Orders By Phone
+
+GET
+
+```
+/api/v1/orders/phone/:phone
+```
+
+---
+
+## Admin Orders
+
+GET
+
+```
+/api/v1/admin/orders
+```
+
+---
+
+## Update Order Status
+
+PATCH
+
+```
+/api/v1/orders/:id/status
+```
+
+---
+
+# 🚀 Deployment
+
+## Backend Hosting
+
+Supported:
+
+* Render
+* Railway
+* AWS
+* DigitalOcean
+
+Environment variables must be added in hosting dashboard.
+
+---
+
+# 🔒 Security
+
+Implemented:
+
+* Environment variables
+* JWT authentication
+* Protected admin routes
+* Input validation
+* MongoDB schema validation
+* API error handling
+
+---
+
+# 📈 Future Improvements
+
+* Push notifications
+* Socket.IO real-time order updates
+* Delivery partner application
+* Online payments
+* Restaurant analytics
+* Customer authentication
+* Order tracking map
+
+---
+
+# 👨‍💻 Developer
+
+Built as a complete full-stack food delivery solution.
+
+Technologies:
+
+Flutter + Node.js + TypeScript + MongoDB + Supabase
+
+---
+
+## License
+
+This project is for learning, portfolio, and business implementation purposes.
