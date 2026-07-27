@@ -131,9 +131,9 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.primaryColor.withOpacity(0.05),
+        color: AppTheme.primaryColor.withValues(alpha: 0.05),
         border: Border(
-          bottom: BorderSide(color: AppTheme.primaryColor.withOpacity(0.1)),
+          bottom: BorderSide(color: AppTheme.primaryColor.withValues(alpha: 0.1)),
         ),
       ),
       child: Column(
@@ -273,7 +273,7 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: badgeColor.withOpacity(0.1),
+        color: badgeColor.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Text(badgeText, style: TextStyle(color: badgeColor, fontWeight: FontWeight.w600)),
@@ -381,7 +381,7 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                     decoration: BoxDecoration(
-                                      color: statusColor.withOpacity(0.1),
+                                      color: statusColor.withValues(alpha: 0.1),
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                     child: Text(

@@ -6,7 +6,10 @@ plugins {
 
 android {
     namespace = "com.pawanbiryani.pawan_biryani"
-    compileSdk = 37
+
+    // Flutter ke compatible SDK versions use karo.
+    
+    compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -20,15 +23,25 @@ android {
 
     defaultConfig {
         applicationId = "com.pawanbiryani.pawan_biryani"
+
         minSdk = 24
         targetSdk = flutter.targetSdkVersion
+
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
 
+    packaging {
+        jniLibs {
+            // Flutter ki native library ko dobara strip karne ki koshish mat karo.
+            keepDebugSymbols += "**/libapp.so"
+        }
+    }
+
     buildTypes {
         release {
-            // Temporary only — replace before Play Store upload.
+            // Testing ke liye temporary.
+            // Play Store upload se pehle proper release keystore use karna hoga.
             signingConfig = signingConfigs.getByName("debug")
         }
     }

@@ -14,7 +14,7 @@ class SearchBarWidget extends StatelessWidget {
         onChanged: onSearch,
         decoration: InputDecoration(
           hintText: 'Search for food...',
-          prefixIcon: Icon(Icons.search, color: AppTheme.textSecondary.withOpacity(0.6)),
+          prefixIcon: Icon(Icons.search, color: AppTheme.textSecondary.withValues(alpha: 0.6)),
           filled: true,
           fillColor: AppTheme.surfaceColor,
           border: OutlineInputBorder(

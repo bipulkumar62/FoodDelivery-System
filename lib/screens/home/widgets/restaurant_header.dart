@@ -37,7 +37,7 @@ class RestaurantHeader extends StatelessWidget {
                 imageUrl: _bannerImageUrl,
                 fit: BoxFit.cover,
                 placeholder: (context, url) => Container(
-                  color: AppTheme.primaryColor.withOpacity(0.1),
+                  color: AppTheme.primaryColor.withValues(alpha: 0.1),
                   child: const Center(
                     child: CircularProgressIndicator(color: AppTheme.primaryColor),
                   ),
@@ -47,7 +47,7 @@ class RestaurantHeader extends StatelessWidget {
                     gradient: LinearGradient(
                       colors: [
                         AppTheme.primaryColor,
-                        AppTheme.primaryColor.withOpacity(0.85),
+                        AppTheme.primaryColor.withValues(alpha: 0.85),
                       ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
@@ -60,8 +60,8 @@ class RestaurantHeader extends StatelessWidget {
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
-                      Colors.black.withOpacity(0.55),
-                      Colors.black.withOpacity(0.75),
+                      Colors.black.withValues(alpha: 0.55),
+                      Colors.black.withValues(alpha: 0.75),
                     ],
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
@@ -81,7 +81,7 @@ class RestaurantHeader extends StatelessWidget {
                         borderRadius: BorderRadius.circular(20),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.2),
+                            color: Colors.black.withValues(alpha: 0.2),
                             blurRadius: 16,
                             offset: const Offset(0, 6),
                           ),
@@ -108,7 +108,7 @@ class RestaurantHeader extends StatelessWidget {
                         letterSpacing: 1.2,
                         shadows: [
                           Shadow(
-                            color: Colors.black.withOpacity(0.5),
+                            color: Colors.black.withValues(alpha: 0.5),
                             blurRadius: 8,
                             offset: const Offset(0, 2),
                           ),
@@ -120,11 +120,11 @@ class RestaurantHeader extends StatelessWidget {
                       AppConstants.tagline,
                       style: TextStyle(
                         fontSize: isSmall ? 13 : 15,
-                        color: Colors.white.withOpacity(0.95),
+                        color: Colors.white.withValues(alpha: 0.95),
                         letterSpacing: 0.8,
                         shadows: [
                           Shadow(
-                            color: Colors.black.withOpacity(0.5),
+                            color: Colors.black.withValues(alpha: 0.5),
                             blurRadius: 4,
                             offset: const Offset(0, 1),
                           ),

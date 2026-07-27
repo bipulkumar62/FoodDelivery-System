@@ -88,7 +88,7 @@ class SettingsScreen extends StatelessWidget {
             child: Text(
               'Version 1.0.0',
               style: TextStyle(
-                color: AppTheme.textSecondary.withOpacity(0.6),
+                color: AppTheme.textSecondary.withValues(alpha: 0.6),
                 fontSize: 13,
               ),
             ),
@@ -98,7 +98,7 @@ class SettingsScreen extends StatelessWidget {
             child: Text(
               AppConstants.appName,
               style: TextStyle(
-                color: AppTheme.textSecondary.withOpacity(0.4),
+                color: AppTheme.textSecondary.withValues(alpha: 0.4),
                 fontSize: 12,
               ),
             ),

@@ -262,7 +262,7 @@ class _OrderCard extends StatelessWidget {
 
   Widget _itemPlaceholder(String name) {
     return Container(
-      color: AppTheme.primaryColor.withOpacity(0.1),
+      color: AppTheme.primaryColor.withValues(alpha: 0.1),
       alignment: Alignment.center,
       child: Text(
         name.isNotEmpty ? name[0].toUpperCase() : '?',

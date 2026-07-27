@@ -25,7 +25,7 @@ class FoodCard extends StatelessWidget {
                 width: 80,
                 height: 80,
                 decoration: BoxDecoration(
-                  color: AppTheme.primaryColor.withOpacity(0.1),
+                  color: AppTheme.primaryColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: item.image.isNotEmpty
@@ -49,7 +49,7 @@ class FoodCard extends StatelessWidget {
                                   Icon(
                                     Icons.restaurant,
                                     size: 32,
-                                    color: AppTheme.primaryColor.withOpacity(0.5),
+                                    color: AppTheme.primaryColor.withValues(alpha: 0.5),
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
@@ -73,7 +73,7 @@ class FoodCard extends StatelessWidget {
                             Icon(
                               Icons.restaurant,
                               size: 32,
-                              color: AppTheme.primaryColor.withOpacity(0.5),
+                              color: AppTheme.primaryColor.withValues(alpha: 0.5),
                             ),
                             const SizedBox(height: 4),
                             Text(
@@ -110,7 +110,7 @@ class FoodCard extends StatelessWidget {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 8, vertical: 2),
                             decoration: BoxDecoration(
-                              color: AppTheme.errorColor.withOpacity(0.1),
+                              color: AppTheme.errorColor.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: const Text(

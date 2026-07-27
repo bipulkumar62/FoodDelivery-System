@@ -158,7 +158,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       return Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: AppTheme.primaryColor.withOpacity(0.05),
+          color: AppTheme.primaryColor.withValues(alpha: 0.05),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Row(
@@ -187,9 +187,9 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: AppTheme.errorColor.withOpacity(0.1),
+              color: AppTheme.errorColor.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppTheme.errorColor.withOpacity(0.3)),
+              border: Border.all(color: AppTheme.errorColor.withValues(alpha: 0.3)),
             ),
             child: Row(
               children: [
@@ -216,9 +216,9 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       return Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: Colors.green.withOpacity(0.1),
+          color: Colors.green.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.green.withOpacity(0.3)),
+          border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
         ),
         child: Row(
           children: [
@@ -262,10 +262,10 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: AppTheme.primaryColor.withOpacity(0.05),
+                  color: AppTheme.primaryColor.withValues(alpha: 0.05),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                      color: AppTheme.primaryColor.withOpacity(0.1)),
+                      color: AppTheme.primaryColor.withValues(alpha: 0.1)),
                 ),
                 child: Column(
                   children: [

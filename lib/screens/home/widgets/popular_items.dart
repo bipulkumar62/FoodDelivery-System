@@ -51,7 +51,7 @@ class PopularItems extends StatelessWidget {
                         Container(
                           height: 120,
                           decoration: BoxDecoration(
-                            color: Colors.deepOrange.withOpacity(0.1),
+                            color: Colors.deepOrange.withValues(alpha: 0.1),
                             borderRadius: const BorderRadius.vertical(
                                 top: Radius.circular(16)),
                           ),
@@ -61,7 +61,7 @@ class PopularItems extends StatelessWidget {
                               style: TextStyle(
                                 fontSize: 48,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.deepOrange.withOpacity(0.5),
+                                color: Colors.deepOrange.withValues(alpha: 0.5),
                               ),
                             ),
                           ),

@@ -22,7 +22,7 @@ class OrderSuccessScreen extends StatelessWidget {
                 width: 120,
                 height: 120,
                 decoration: BoxDecoration(
-                  color: AppTheme.successColor.withOpacity(0.1),
+                  color: AppTheme.successColor.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
@@ -55,10 +55,10 @@ class OrderSuccessScreen extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: AppTheme.primaryColor.withOpacity(0.05),
+                    color: AppTheme.primaryColor.withValues(alpha: 0.05),
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                        color: AppTheme.primaryColor.withOpacity(0.1)),
+                        color: AppTheme.primaryColor.withValues(alpha: 0.1)),
                   ),
                   child: Column(
                     children: [

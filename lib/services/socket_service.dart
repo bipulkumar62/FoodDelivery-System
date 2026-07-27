@@ -1,9 +1,10 @@
-import 'package:socket_io_client/socket_io_client.dart' as IO;
+import 'package:flutter/foundation.dart';
+import 'package:socket_io_client/socket_io_client.dart' as io;
 import '../network/network_constants.dart';
 
 class SocketService {
   static SocketService? _instance;
-  late IO.Socket _socket;
+  late io.Socket _socket;
   bool _isConnected = false;
   static const maxReconnectAttempts = 5;
 
@@ -17,9 +18,9 @@ class SocketService {
   }
 
   void _initSocket() {
-    _socket = IO.io(
+    _socket = io.io(
       NetworkConstants.baseUrl.replaceAll('/api/v1', ''),
-      IO.OptionBuilder()
+      io.OptionBuilder()
           .setTransports(['websocket', 'polling'])
           .setReconnectionAttempts(maxReconnectAttempts)
           .setReconnectionDelay(3000)
@@ -30,33 +31,33 @@ class SocketService {
     );
 
     _socket.onConnect((_) {
-      print('Socket connected: ${_socket.id}');
+      debugPrint('Socket connected: ${_socket.id}');
       _isConnected = true;
     });
 
     _socket.onDisconnect((_) {
-      print('Socket disconnected');
+      debugPrint('Socket disconnected');
       _isConnected = false;
     });
 
     _socket.onConnectError((data) {
-      print('Socket connect error: $data');
+      debugPrint('Socket connect error: $data');
     });
 
     _socket.onError((data) {
-      print('Socket error: $data');
+      debugPrint('Socket error: $data');
     });
 
     _socket.onReconnect((_) {
-      print('Socket reconnected');
+      debugPrint('Socket reconnected');
     });
 
     _socket.onReconnectAttempt((attempt) {
-      print('Socket reconnect attempt: $attempt');
+      debugPrint('Socket reconnect attempt: $attempt');
     });
 
     _socket.onReconnectFailed((_) {
-      print('Socket reconnect failed');
+      debugPrint('Socket reconnect failed');
     });
   }
 

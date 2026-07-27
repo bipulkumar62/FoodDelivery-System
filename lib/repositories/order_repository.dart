@@ -1,4 +1,5 @@
 // ignore_for_file: use_null_aware_elements
+import 'package:flutter/foundation.dart';
 import '../network/api_client.dart';
 import '../models/order.dart';
 
@@ -25,7 +26,7 @@ class OrderRepository {
       if (latitude != null) 'latitude': latitude,
       if (longitude != null) 'longitude': longitude,
     };
-    print('[placeOrder] sending latitude: $latitude, longitude: $longitude');
+    debugPrint('[placeOrder] sending latitude: $latitude, longitude: $longitude');
     final json = await _client.post('/orders', data: body);
     final data = json['data'] as Map<String, dynamic>;
     return Order.fromJson(data);
