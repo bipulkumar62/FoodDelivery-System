@@ -1,0 +1,13 @@
+Error: listen EADDRINUSE: address already in use :::4000
+    at Server.setupListenHandle [as _listen2] (node:net:2009:16)
+    at listenInCluster (node:net:2066:12)
+    at Server.listen (node:net:2171:7)
+    at app.listen (C:\Users\Aditya\OneDrive\Desktop\pawan biryani\backend\node_modules\express\lib\application.js:635:24)
+    at start (C:\Users\Aditya\OneDrive\Desktop\pawan biryani\backend\src\server.ts:13:22)
+    at processTicksAndRejections (node:internal/process/task_queues:104:5) {
+  code: 'EADDRINUSE',
+  errno: -4091,
+  syscall: 'listen',
+  address: '::',
+  port: 4000
+}
