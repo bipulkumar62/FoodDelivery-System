@@ -29,7 +29,7 @@ class FoodItem {
       name: json['name'] as String? ?? '',
       description: json['description'] as String? ?? '',
       price: (json['price'] as num?)?.toDouble() ?? 0.0,
-      image: json['image'] as String? ?? '',
+      image: _normalizeUrl(json['image'] as String? ?? ''),
       category: json['category'] as String? ?? '',
       veg: json['veg'] as bool? ?? false,
       available: json['available'] as bool? ?? true,
@@ -48,6 +48,14 @@ class FoodItem {
         'veg': veg,
         'available': available,
       };
+
+  /// Normalize an image URL by properly encoding characters and validating it
+  static String _normalizeUrl(String url) {
+    if (url.isEmpty) return '';
+    final uri = Uri.tryParse(url);
+    if (uri == null || !uri.hasScheme || !uri.hasAuthority) return '';
+    return uri.toString();
+  }
 
   FoodItem copyWith({
     String? id,

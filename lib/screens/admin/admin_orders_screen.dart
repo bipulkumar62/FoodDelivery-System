@@ -415,7 +415,7 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
                                         onPressed: () async {
                                           final lat = order['latitude'];
                                           final lng = order['longitude'];
-                                          final uri = Uri.parse('https://www.google.com/maps/dir/?api=1&destination=$lat,$lng&travelmode=driving');
+                                          final uri = Uri.parse('https://www.google.com/maps/search/?api=1&query=$lat,$lng');
                                           if (await canLaunchUrl(uri)) {
                                             await launchUrl(uri, mode: LaunchMode.externalApplication);
                                           }

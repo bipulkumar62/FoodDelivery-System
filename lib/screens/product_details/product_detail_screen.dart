@@ -68,16 +68,19 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                           color: AppTheme.primaryColor,
                         ),
                       ),
-                                                            errorWidget: (_, _, _) => Center(
-                        child: Text(
-                          item.name.substring(0, 1),
-                          style: TextStyle(
-                            fontSize: 120,
-                            fontWeight: FontWeight.bold,
-                            color: AppTheme.primaryColor.withOpacity(0.15),
+                      errorWidget: (_, url, error) {
+                        debugPrint('[ProductDetail] Failed to load image: $url error: $error');
+                        return Center(
+                          child: Text(
+                            item.name.substring(0, 1),
+                            style: TextStyle(
+                              fontSize: 120,
+                              fontWeight: FontWeight.bold,
+                              color: AppTheme.primaryColor.withOpacity(0.15),
+                            ),
                           ),
-                        ),
-                      ),
+                        );
+                      },
                     )
                   : Center(
                       child: Text(

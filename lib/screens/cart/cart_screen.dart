@@ -60,16 +60,19 @@ class CartScreen extends ConsumerWidget {
                                 child: CachedNetworkImage(
                                   imageUrl: food.image,
                                   fit: BoxFit.cover,
-                                  errorWidget: (_, _, _) => Center(
-                                    child: Text(
-                                      food.name.substring(0, 1),
-                                      style: TextStyle(
-                                        fontSize: 24,
-                                        fontWeight: FontWeight.bold,
-                                        color: AppTheme.primaryColor,
+                                  errorWidget: (_, url, error) {
+                                    debugPrint('[Cart] Failed to load image: $url error: $error');
+                                    return Center(
+                                      child: Text(
+                                        food.name.substring(0, 1),
+                                        style: TextStyle(
+                                          fontSize: 24,
+                                          fontWeight: FontWeight.bold,
+                                          color: AppTheme.primaryColor,
+                                        ),
                                       ),
-                                    ),
-                                  ),
+                                    );
+                                  },
                                 ),
                               )
                             : Center(

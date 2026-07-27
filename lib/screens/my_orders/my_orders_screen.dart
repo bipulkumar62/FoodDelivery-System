@@ -214,7 +214,10 @@ class _OrderCard extends StatelessWidget {
                   ? CachedNetworkImage(
                       imageUrl: item.image,
                       fit: BoxFit.cover,
-                      errorWidget: (_, _, _) => _itemPlaceholder(item.name),
+                      errorWidget: (_, url, error) {
+                        debugPrint('[MyOrders] Failed to load image: $url error: $error');
+                        return _itemPlaceholder(item.name);
+                      },
                     )
                   : _itemPlaceholder(item.name),
             ),

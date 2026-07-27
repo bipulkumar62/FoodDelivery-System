@@ -40,50 +40,53 @@ class FoodCard extends StatelessWidget {
                               strokeWidth: 2,
                             ),
                           ),
-                          errorWidget: (context, url, error) => Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.restaurant,
-                                  size: 32,
-                                  color: AppTheme.primaryColor.withOpacity(0.5),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  item.name.substring(0, 1),
-                                  style: TextStyle(
-                                    fontSize: 28,
-                                    fontWeight: FontWeight.bold,
-                                    color: AppTheme.primaryColor,
+                          errorWidget: (context, url, error) {
+                            debugPrint('[FoodCard] Failed to load image: $url error: $error');
+                            return Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.restaurant,
+                                    size: 32,
+                                    color: AppTheme.primaryColor.withOpacity(0.5),
                                   ),
-                                ),
-                              ],
-                            ),
-                          ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    item.name.substring(0, 1),
+                                    style: TextStyle(
+                                      fontSize: 28,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppTheme.primaryColor,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
                         ),
                       )
                       : Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.restaurant,
-                                size: 32,
-                                color: AppTheme.primaryColor.withOpacity(0.5),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.restaurant,
+                              size: 32,
+                              color: AppTheme.primaryColor.withOpacity(0.5),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              item.name.substring(0, 1),
+                              style: TextStyle(
+                                fontSize: 28,
+                                fontWeight: FontWeight.bold,
+                                color: AppTheme.primaryColor,
                               ),
-                              const SizedBox(height: 4),
-                              Text(
-                                item.name.substring(0, 1),
-                                style: TextStyle(
-                                  fontSize: 28,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppTheme.primaryColor,
-                                ),
-                              ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
+                      ),
               ),
               const SizedBox(width: 16),
               Expanded(

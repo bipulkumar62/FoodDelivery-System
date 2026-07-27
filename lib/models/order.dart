@@ -52,13 +52,20 @@ class OrderItem {
     required this.subtotal,
   });
 
+  static String _normalizeUrl(String url) {
+    if (url.isEmpty) return '';
+    final uri = Uri.tryParse(url);
+    if (uri == null || !uri.hasScheme || !uri.hasAuthority) return '';
+    return uri.toString();
+  }
+
   factory OrderItem.fromJson(Map<String, dynamic> json) {
     return OrderItem(
       menuItemId: json['menuItemId'] as String? ?? '',
       name: json['name'] as String? ?? '',
       price: (json['price'] as num?)?.toDouble() ?? 0.0,
       quantity: json['quantity'] as int? ?? 1,
-      image: json['image'] as String? ?? '',
+      image: _normalizeUrl(json['image'] as String? ?? ''),
       category: json['category'] as String? ?? '',
       veg: json['veg'] as bool? ?? false,
       subtotal: (json['subtotal'] as num?)?.toDouble() ?? 0.0,
