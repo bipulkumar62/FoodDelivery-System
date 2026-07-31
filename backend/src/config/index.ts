@@ -7,5 +7,5 @@ export const config = {
   nodeEnv: process.env.NODE_ENV || 'development',
   mongodbUri: process.env.MONGODB_URI || '',
   jwtSecret: process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production',
-  isDev: (process.env.NODE_ENV || 'development') === 'development',
+  isDev: process.env.NODE_ENV === 'development',
 };

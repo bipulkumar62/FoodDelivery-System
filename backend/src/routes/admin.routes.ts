@@ -15,6 +15,8 @@ import { validate } from '../middlewares/validate';
 
 const router = Router();
 
+router.use(authenticate);
+
 // Orders
 router.get('/orders', getAllOrders);
 
@@ -54,7 +56,6 @@ router.patch(
 
 router.patch(
   '/menu/:id/availability',
-  authenticate,
   [
     param('id').isMongoId().withMessage('Invalid menu item ID'),
     body('available').isBoolean().withMessage('available must be a boolean'),

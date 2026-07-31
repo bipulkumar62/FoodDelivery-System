@@ -5,8 +5,20 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const MONGODB_URI = process.env.MONGODB_URI || '';
+const ADMIN_MOBILE = process.env.ADMIN_MOBILE || '';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '';
 
 async function seedAdmin() {
+  if (!MONGODB_URI) {
+    console.error('MONGODB_URI is required in environment');
+    process.exit(1);
+  }
+
+  if (!ADMIN_MOBILE || !ADMIN_PASSWORD) {
+    console.log('ADMIN_MOBILE and ADMIN_PASSWORD not set. Skipping admin seed.');
+    process.exit(0);
+  }
+
   try {
     await mongoose.connect(MONGODB_URI);
     console.log('Connected to MongoDB');
@@ -32,24 +44,15 @@ async function seedAdmin() {
 
     const Admin = mongoose.model('Admin', adminSchema);
 
-    const mobile = '9304901506';
-    const password = 'yash@70000000';
-
-    const existing = await Admin.findOne({ mobile });
+    const existing = await Admin.findOne({ mobile: ADMIN_MOBILE });
     if (existing) {
-      console.log('Admin already exists, updating password...');
-      existing.password = await bcrypt.hash(password, 12);
+      existing.password = ADMIN_PASSWORD;
       await existing.save();
       console.log('Admin password updated');
     } else {
-      const admin = new Admin({ mobile, password });
-      await admin.save();
+      await new Admin({ mobile: ADMIN_MOBILE, password: ADMIN_PASSWORD }).save();
       console.log('Admin created successfully');
     }
-
-    console.log('Mobile:', mobile);
-    console.log('Password:', password);
-    console.log('Login with these credentials');
   } catch (error) {
     console.error('Error seeding admin:', error);
   } finally {

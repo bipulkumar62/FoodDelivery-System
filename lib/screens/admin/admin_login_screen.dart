@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../config/theme.dart';
+import '../../network/api_client.dart';
 
 const _adminKey = 'admin_logged_in';
 const _tokenKey = 'admin_token';
+
+String? pendingAdminRedirect;
 
 class AdminLoginScreen extends StatefulWidget {
   const AdminLoginScreen({super.key});
@@ -19,12 +22,9 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
   bool _isLoading = false;
   String? _errorMessage;
 
-  // Hardcoded admin credentials
-  static const String _adminMobile = '9199998028';
-  static const String _adminPassword = 'pawan@70000000';
-
   @override
   void dispose() {
+    pendingAdminRedirect = null;
     _mobileController.dispose();
     _passwordController.dispose();
     super.dispose();
@@ -44,17 +44,24 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
       _errorMessage = null;
     });
 
-    // Validate against hardcoded credentials
-    await Future.delayed(const Duration(milliseconds: 500)); // Simulate network delay
+    try {
+      final response = await ApiClient.instance.post(
+        '/auth/login',
+        data: {'mobile': mobile, 'password': password},
+      );
+      final data = response['data'] as Map<String, dynamic>;
+      final token = data['token'] as String;
 
-    if (mobile == _adminMobile && password == _adminPassword) {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool(_adminKey, true);
-      await prefs.setString(_tokenKey, 'admin_token_${DateTime.now().millisecondsSinceEpoch}');
+      await prefs.setString(_tokenKey, token);
+      ApiClient.instance.setToken(token);
 
       if (!mounted) return;
-      Navigator.pushReplacementNamed(context, '/admin-orders');
-    } else {
+      final redirect = pendingAdminRedirect;
+      pendingAdminRedirect = null;
+      Navigator.pushReplacementNamed(context, redirect ?? '/admin-orders');
+    } catch (_) {
       if (!mounted) return;
       setState(() => _errorMessage = 'Invalid mobile number or password');
     }

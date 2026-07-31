@@ -97,6 +97,7 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
 
   void _onLogout() async {
     await adminLogout();
+    ApiClient.instance.clearToken();
     if (!mounted) return;
     Navigator.pushReplacementNamed(context, '/admin-login');
   }

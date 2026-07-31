@@ -30,6 +30,11 @@ class SettingsScreen extends StatelessWidget {
             onTap: () => _openAdmin(context),
           ),
           _buildMenuItem(
+            icon: Icons.edit_outlined,
+            title: 'Edit Restaurant & Menu',
+            onTap: () => Navigator.pushNamed(context, '/edit-restaurant-menu'),
+          ),
+          _buildMenuItem(
             icon: Icons.privacy_tip_outlined,
             title: 'Privacy Policy',
             onTap: () => _showInfo(context, 'Privacy Policy',
