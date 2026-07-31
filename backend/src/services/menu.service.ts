@@ -35,6 +35,18 @@ export async function updateMenuItem(id: string, data: Partial<IMenuItem>): Prom
   return item;
 }
 
+export async function updateMenuItemAvailability(id: string, available: boolean): Promise<IMenuItem> {
+  const item = await Menu.findByIdAndUpdate(
+    id,
+    { available },
+    { new: true, runValidators: true },
+  );
+  if (!item) {
+    throw new AppError('Menu item not found', HTTP_STATUS.NOT_FOUND);
+  }
+  return item;
+}
+
 export async function deleteMenuItem(id: string): Promise<void> {
   const item = await Menu.findByIdAndDelete(id);
   if (!item) {

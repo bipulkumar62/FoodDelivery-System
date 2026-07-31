@@ -5,10 +5,12 @@ import {
   updateOrderStatus,
   createMenuItem,
   updateMenuItem,
+  updateMenuItemAvailability,
   deleteMenuItem,
 } from '../controllers/admin.controller';
 import * as menuController from '../controllers/menu.controller';
 import * as revenueController from '../controllers/revenue.controller';
+import { authenticate } from '../middlewares/auth';
 import { validate } from '../middlewares/validate';
 
 const router = Router();
@@ -48,6 +50,17 @@ router.patch(
   [param('id').isMongoId().withMessage('Invalid menu item ID')],
   validate,
   updateMenuItem,
+);
+
+router.patch(
+  '/menu/:id/availability',
+  authenticate,
+  [
+    param('id').isMongoId().withMessage('Invalid menu item ID'),
+    body('available').isBoolean().withMessage('available must be a boolean'),
+  ],
+  validate,
+  updateMenuItemAvailability,
 );
 
 router.delete(

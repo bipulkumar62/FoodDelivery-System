@@ -74,6 +74,26 @@ export async function updateMenuItem(
   }
 }
 
+export async function updateMenuItemAvailability(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const item = await menuService.updateMenuItemAvailability(
+      req.params.id,
+      req.body.available,
+    );
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      message: 'Menu item availability updated successfully',
+      data: item,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
 export async function deleteMenuItem(
   req: Request,
   res: Response,

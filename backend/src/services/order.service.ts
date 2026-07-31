@@ -67,7 +67,7 @@ export async function placeOrder(dto: CreateOrderDto): Promise<IOrderResponse> {
     }
     if (!menuItem.available) {
       throw new AppError(
-        `${menuItem.name} is not available`,
+        `${menuItem.name} is currently sold out.`,
         HTTP_STATUS.BAD_REQUEST,
       );
     }
