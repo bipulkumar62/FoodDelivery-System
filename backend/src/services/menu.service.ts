@@ -3,7 +3,7 @@ import { AppError } from '../utils/AppError';
 import { HTTP_STATUS } from '../constants';
 
 export async function getAllMenuItems(): Promise<IMenuItem[]> {
-  return Menu.find({ category: { $regex: /^biryani$/i }, available: true }).sort({ name: 1 });
+  return Menu.find({ category: { $regex: /^biryani$/i } }).sort({ name: 1 });
 }
 
 export async function getMenuItemById(id: string): Promise<IMenuItem> {
