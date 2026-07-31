@@ -36,6 +36,23 @@ export async function createOrder(
   }
 }
 
+export async function getDeliveryQuote(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const { latitude, longitude } = req.body;
+    const quote = await orderService.buildDeliveryQuote(latitude, longitude);
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      data: quote,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
 export async function getOrderById(
   req: Request,
   res: Response,

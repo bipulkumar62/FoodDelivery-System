@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import {
   createOrder,
+  getDeliveryQuote,
   getOrderById,
   getOrdersByPhone,
   getAllOrders,
@@ -8,6 +9,7 @@ import {
 } from '../controllers/orders.controller';
 import {
   createOrderValidator,
+  deliveryQuoteValidator,
   orderIdParamValidator,
   phoneParamValidator,
   updateStatusValidator,
@@ -15,6 +17,13 @@ import {
 import { validate } from '../middlewares/validate';
 
 const router = Router();
+
+router.post(
+  '/delivery-quote',
+  deliveryQuoteValidator,
+  validate,
+  getDeliveryQuote,
+);
 
 router.post(
   '/',

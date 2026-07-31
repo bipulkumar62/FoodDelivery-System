@@ -41,6 +41,32 @@ export const createOrderValidator = [
   body('items.*.quantity')
     .isInt({ min: 1 })
     .withMessage('Quantity must be at least 1'),
+
+  body('latitude')
+    .exists()
+    .withMessage('Latitude is required')
+    .isFloat({ min: -90, max: 90 })
+    .withMessage('Latitude must be a finite number between -90 and 90'),
+
+  body('longitude')
+    .exists()
+    .withMessage('Longitude is required')
+    .isFloat({ min: -180, max: 180 })
+    .withMessage('Longitude must be a finite number between -180 and 180'),
+];
+
+export const deliveryQuoteValidator = [
+  body('latitude')
+    .exists()
+    .withMessage('Latitude is required')
+    .isFloat({ min: -90, max: 90 })
+    .withMessage('Latitude must be a finite number between -90 and 90'),
+
+  body('longitude')
+    .exists()
+    .withMessage('Longitude is required')
+    .isFloat({ min: -180, max: 180 })
+    .withMessage('Longitude must be a finite number between -180 and 180'),
 ];
 
 export const orderIdParamValidator = [

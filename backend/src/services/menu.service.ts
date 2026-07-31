@@ -3,7 +3,14 @@ import { AppError } from '../utils/AppError';
 import { HTTP_STATUS } from '../constants';
 
 export async function getAllMenuItems(): Promise<IMenuItem[]> {
-  return Menu.find({ category: { $regex: /^biryani$/i } }).sort({ name: 1 });
+  return Menu.find({
+    category: { $regex: /^biryani$/i },
+    $or: [{ isActive: true }, { isActive: { $exists: false } }],
+  }).sort({ name: 1 });
+}
+
+export async function getAllMenuItemsAdmin(): Promise<IMenuItem[]> {
+  return Menu.find().sort({ name: 1 });
 }
 
 export async function getMenuItemById(id: string): Promise<IMenuItem> {
@@ -47,9 +54,14 @@ export async function updateMenuItemAvailability(id: string, available: boolean)
   return item;
 }
 
-export async function deleteMenuItem(id: string): Promise<void> {
-  const item = await Menu.findByIdAndDelete(id);
+export async function deleteMenuItem(id: string): Promise<IMenuItem> {
+  const item = await Menu.findByIdAndUpdate(
+    id,
+    { isActive: false },
+    { new: true, runValidators: true },
+  );
   if (!item) {
     throw new AppError('Menu item not found', HTTP_STATUS.NOT_FOUND);
   }
+  return item;
 }

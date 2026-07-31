@@ -25,6 +25,8 @@ export interface IOrderResponse {
   items: IOrderItem[];
   subtotal: number;
   deliveryCharge: number;
+  distanceKm?: number;
+  deliveryRatePerKm?: number;
   total: number;
   paymentMethod: string;
   paymentStatus: string;

@@ -1,7 +1,19 @@
 import { Request, Response, NextFunction } from 'express';
 import * as orderService from '../services/order.service';
 import * as menuService from '../services/menu.service';
+import { AppError } from '../utils/AppError';
 import { HTTP_STATUS } from '../constants';
+
+const ALLOWED_MENU_UPDATE_FIELDS = [
+  'name',
+  'description',
+  'price',
+  'image',
+  'category',
+  'veg',
+  'available',
+  'isActive',
+];
 
 export async function getAllOrders(
   _req: Request,
@@ -40,6 +52,24 @@ export async function updateOrderStatus(
   }
 }
 
+export async function getAllMenuAdmin(
+  _req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const items = await menuService.getAllMenuItemsAdmin();
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      message: 'Menu fetched successfully',
+      count: items.length,
+      data: items,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
 export async function createMenuItem(
   req: Request,
   res: Response,
@@ -63,6 +93,21 @@ export async function updateMenuItem(
   next: NextFunction,
 ): Promise<void> {
   try {
+    const unknownFields = Object.keys(req.body).filter(
+      (key) => !ALLOWED_MENU_UPDATE_FIELDS.includes(key),
+    );
+    if (unknownFields.length > 0) {
+      throw new AppError(
+        `Unknown fields not allowed: ${unknownFields.join(', ')}`,
+        HTTP_STATUS.BAD_REQUEST,
+      );
+    }
+    if (Object.keys(req.body).length === 0) {
+      throw new AppError(
+        'At least one menu field is required',
+        HTTP_STATUS.BAD_REQUEST,
+      );
+    }
     const item = await menuService.updateMenuItem(req.params.id, req.body);
     res.status(HTTP_STATUS.OK).json({
       success: true,
@@ -100,10 +145,11 @@ export async function deleteMenuItem(
   next: NextFunction,
 ): Promise<void> {
   try {
-    await menuService.deleteMenuItem(req.params.id);
+    const item = await menuService.deleteMenuItem(req.params.id);
     res.status(HTTP_STATUS.OK).json({
       success: true,
-      message: 'Menu item deleted successfully',
+      message: 'Menu item archived successfully',
+      data: item,
     });
   } catch (error) {
     next(error);

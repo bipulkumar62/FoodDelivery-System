@@ -8,6 +8,7 @@ export interface IMenuItem extends Document {
   image: string;
   veg: boolean;
   available: boolean;
+  isActive: boolean;
   deleted: boolean;
   deletedAt?: Date | null;
   createdAt: Date;
@@ -49,6 +50,10 @@ const menuSchema = new Schema<IMenuItem>(
       type: Boolean,
       default: true,
     },
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
     deleted: {
       type: Boolean,
       default: false,
@@ -65,6 +70,7 @@ const menuSchema = new Schema<IMenuItem>(
 
 menuSchema.index({ category: 1 });
 menuSchema.index({ available: 1 });
+menuSchema.index({ isActive: 1 });
 menuSchema.index({ name: 1, category: 1 }, { unique: true });
 
 export const Menu = mongoose.model<IMenuItem>('Menu', menuSchema);

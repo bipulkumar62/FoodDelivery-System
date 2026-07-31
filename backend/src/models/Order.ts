@@ -22,6 +22,8 @@ export interface IOrder extends Document {
   items: IOrderItem[];
   subtotal: number;
   deliveryCharge: number;
+  distanceKm?: number;
+  deliveryRatePerKm?: number;
   total: number;
   paymentMethod: string;
   paymentStatus: string;
@@ -127,8 +129,15 @@ const orderSchema = new Schema<IOrder>(
     deliveryCharge: {
       type: Number,
       required: true,
-      default: 30,
       min: [0, 'Delivery charge cannot be negative'],
+    },
+    distanceKm: {
+      type: Number,
+      min: [0, 'Distance cannot be negative'],
+    },
+    deliveryRatePerKm: {
+      type: Number,
+      min: [0, 'Delivery rate cannot be negative'],
     },
     total: {
       type: Number,

@@ -5,10 +5,25 @@ import { AppError } from '../utils/AppError';
 import { HTTP_STATUS } from '../constants';
 import * as orderRepo from '../repositories/order.repository';
 import { IOrder } from '../models/Order';
+import { getSettingsOrCreate } from './restaurantSettings.service';
+import {
+  RESTAURANT_LATITUDE,
+  RESTAURANT_LONGITUDE,
+  MAX_DELIVERY_DISTANCE_KM,
+  haversineDistanceKm,
+  calculateDeliveryCharge,
+  isWithinDeliveryRange,
+  roundToOneDecimal,
+} from '../utils/deliveryCalculator';
 
-const DELIVERY_FREE_THRESHOLD = 299;
-const DELIVERY_CHARGE = 30;
 const ESTIMATED_MINUTES = 35;
+
+export interface DeliveryQuote {
+  distanceKm: number;
+  deliveryRatePerKm: number;
+  deliveryCharge: number;
+  withinDeliveryRange: boolean;
+}
 
 const VALID_TRANSITIONS: Record<string, string[]> = {
   [OrderStatus.Pending]: [
@@ -41,13 +56,51 @@ async function generateOrderId(): Promise<string> {
   return `PB${nextNum}`;
 }
 
-function calculateDeliveryCharge(subtotal: number): number {
-  return subtotal >= DELIVERY_FREE_THRESHOLD ? 0 : DELIVERY_CHARGE;
+/**
+ * Shared delivery calculation used by both the delivery-quote endpoint
+ * and order creation.
+ */
+export async function buildDeliveryQuote(
+  latitude: number,
+  longitude: number,
+): Promise<DeliveryQuote> {
+  const distanceKm = haversineDistanceKm(
+    RESTAURANT_LATITUDE,
+    RESTAURANT_LONGITUDE,
+    latitude,
+    longitude,
+  );
+  const settings = await getSettingsOrCreate();
+  return {
+    distanceKm: roundToOneDecimal(distanceKm),
+    deliveryRatePerKm: settings.deliveryRatePerKm,
+    deliveryCharge: calculateDeliveryCharge(
+      distanceKm,
+      settings.deliveryRatePerKm,
+    ),
+    withinDeliveryRange: isWithinDeliveryRange(distanceKm),
+  };
 }
 
 export async function placeOrder(dto: CreateOrderDto): Promise<IOrderResponse> {
   if (dto.items.length === 0) {
     throw new AppError('At least one item is required', HTTP_STATUS.BAD_REQUEST);
+  }
+
+  const settings = await getSettingsOrCreate();
+  if (!settings.acceptingOrders) {
+    throw new AppError(
+      'The restaurant is currently not accepting orders.',
+      HTTP_STATUS.BAD_REQUEST,
+    );
+  }
+
+  const quote = await buildDeliveryQuote(dto.latitude, dto.longitude);
+  if (!quote.withinDeliveryRange) {
+    throw new AppError(
+      "Sorry, we are currently not available in your area. We'll be available soon.",
+      HTTP_STATUS.BAD_REQUEST,
+    );
   }
 
   const menuItemIds = dto.items.map((i) => i.menuItemId);
@@ -60,6 +113,12 @@ export async function placeOrder(dto: CreateOrderDto): Promise<IOrderResponse> {
   for (const item of dto.items) {
     const menuItem = menuMap.get(item.menuItemId);
     if (!menuItem) {
+      throw new AppError(
+        `Menu item not found: ${item.menuItemId}`,
+        HTTP_STATUS.NOT_FOUND,
+      );
+    }
+    if (!menuItem.isActive) {
       throw new AppError(
         `Menu item not found: ${item.menuItemId}`,
         HTTP_STATUS.NOT_FOUND,
@@ -96,15 +155,13 @@ export async function placeOrder(dto: CreateOrderDto): Promise<IOrderResponse> {
   });
 
   const subtotal = items.reduce((sum, item) => sum + item.subtotal, 0);
-  const deliveryCharge = calculateDeliveryCharge(subtotal);
+  const deliveryCharge = quote.deliveryCharge;
   const total = subtotal + deliveryCharge;
 
   const orderId = await generateOrderId();
   const estimatedDeliveryTime = new Date(
     Date.now() + ESTIMATED_MINUTES * 60 * 1000,
   );
-
-  console.log('[placeOrder] dto.latitude:', dto.latitude, 'dto.longitude:', dto.longitude);
 
   const order = await orderRepo.insertOrder({
     orderId,
@@ -116,6 +173,8 @@ export async function placeOrder(dto: CreateOrderDto): Promise<IOrderResponse> {
     items: items as any,
     subtotal,
     deliveryCharge,
+    distanceKm: quote.distanceKm,
+    deliveryRatePerKm: quote.deliveryRatePerKm,
     total,
     paymentMethod: PaymentMethod.CashOnDelivery,
     paymentStatus: PaymentStatus.Pending,
@@ -124,8 +183,6 @@ export async function placeOrder(dto: CreateOrderDto): Promise<IOrderResponse> {
     latitude: dto.latitude,
     longitude: dto.longitude,
   });
-
-  console.log('[placeOrder] saved order.latitude:', order.latitude, 'order.longitude:', order.longitude);
 
   return formatOrderResponse(order);
 }
@@ -214,6 +271,8 @@ function formatOrderResponse(order: IOrder): IOrderResponse {
     })),
     subtotal: order.subtotal,
     deliveryCharge: order.deliveryCharge,
+    distanceKm: order.distanceKm,
+    deliveryRatePerKm: order.deliveryRatePerKm,
     total: order.total,
     paymentMethod: order.paymentMethod,
     paymentStatus: order.paymentStatus,

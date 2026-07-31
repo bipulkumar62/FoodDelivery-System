@@ -8,6 +8,6 @@ export interface CreateOrderDto {
     menuItemId: string;
     quantity: number;
   }>;
-  latitude?: number;
-  longitude?: number;
+  latitude: number;
+  longitude: number;
 }
