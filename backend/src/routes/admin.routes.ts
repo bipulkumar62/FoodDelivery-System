@@ -12,6 +12,7 @@ import * as menuController from '../controllers/menu.controller';
 import * as revenueController from '../controllers/revenue.controller';
 import { authenticate } from '../middlewares/auth';
 import { validate } from '../middlewares/validate';
+import * as settingsController from '../controllers/restaurantSettings.controller';
 
 const router = Router();
 
@@ -79,6 +80,42 @@ router.get(
   [query('limit').optional().isInt({ min: 1, max: 365 }).withMessage('Limit must be between 1 and 365')],
   validate,
   revenueController.getRevenueHistory,
+);
+
+// Restaurant Settings
+router.get('/settings', settingsController.getAdminSettings);
+
+router.patch(
+  '/settings',
+  [
+    body('restaurantName')
+      .optional()
+      .isString()
+      .withMessage('restaurantName must be a string')
+      .trim()
+      .notEmpty()
+      .withMessage('restaurantName must not be empty')
+      .isLength({ max: 100 })
+      .withMessage('restaurantName must be at most 100 characters'),
+    body('deliveryRatePerKm')
+      .optional()
+      .custom(
+        (value) =>
+          typeof value === 'number' &&
+          Number.isFinite(value) &&
+          value > 0 &&
+          value <= 1000,
+      )
+      .withMessage(
+        'deliveryRatePerKm must be a finite number greater than 0 and at most 1000',
+      ),
+    body('acceptingOrders')
+      .optional()
+      .isBoolean()
+      .withMessage('acceptingOrders must be a boolean'),
+  ],
+  validate,
+  settingsController.updateSettings,
 );
 
 export default router;
