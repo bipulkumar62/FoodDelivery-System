@@ -66,8 +66,8 @@ class _AdminMenuScreenState extends ConsumerState<AdminMenuScreen> {
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('Archive Item'),
-        content: Text(
-          'Archive "${item.name}"?\nIt will be hidden from the customer menu.',
+        content: const Text(
+          'Archive this menu item? It will be removed from the customer menu, but existing orders will remain unchanged.',
         ),
         actions: [
           TextButton(

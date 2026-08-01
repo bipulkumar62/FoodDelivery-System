@@ -92,6 +92,30 @@ class SocketService {
     _socket.off('menu:availability-updated');
   }
 
+  void onMenuCreated(Function(dynamic) callback) {
+    _socket.on('menu:created', callback);
+  }
+
+  void offMenuCreated() {
+    _socket.off('menu:created');
+  }
+
+  void onMenuUpdated(Function(dynamic) callback) {
+    _socket.on('menu:updated', callback);
+  }
+
+  void offMenuUpdated() {
+    _socket.off('menu:updated');
+  }
+
+  void onMenuDeleted(Function(dynamic) callback) {
+    _socket.on('menu:deleted', callback);
+  }
+
+  void offMenuDeleted() {
+    _socket.off('menu:deleted');
+  }
+
   void offNewOrder() {
     _socket.off('order:new');
   }

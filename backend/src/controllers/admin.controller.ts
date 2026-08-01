@@ -77,6 +77,7 @@ export async function createMenuItem(
 ): Promise<void> {
   try {
     const item = await menuService.createMenuItem(req.body);
+    global.io?.emit('menu:created', { item });
     res.status(HTTP_STATUS.CREATED).json({
       success: true,
       message: 'Menu item created successfully',
@@ -109,6 +110,7 @@ export async function updateMenuItem(
       );
     }
     const item = await menuService.updateMenuItem(req.params.id, req.body);
+    global.io?.emit('menu:updated', { item });
     if (typeof req.body.available === 'boolean') {
       global.io?.emit('menu:availability-updated', { item });
     }
@@ -150,6 +152,7 @@ export async function deleteMenuItem(
 ): Promise<void> {
   try {
     const item = await menuService.deleteMenuItem(req.params.id);
+    global.io?.emit('menu:deleted', { menuItemId: item._id.toString() });
     res.status(HTTP_STATUS.OK).json({
       success: true,
       message: 'Menu item archived successfully',

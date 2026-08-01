@@ -24,13 +24,25 @@ class CartScreen extends ConsumerWidget {
     final settings = ref.watch(restaurantSettingsProvider);
     final orderingDisabled = !settings.acceptingOrders;
     final cartNotifier = ref.read(cartProvider.notifier);
-    final liveMenu = ref.watch(menuProvider).value ?? const <FoodItem>[];
-    final availabilityById = <String, bool>{
-      for (final item in liveMenu) item.id: item.available,
+    final menuAsync = ref.watch(menuProvider);
+    final liveMenu = menuAsync.value ?? const <FoodItem>[];
+    final menuLoaded = menuAsync.hasValue;
+    final liveById = <String, FoodItem>{
+      for (final item in liveMenu) item.id: item,
     };
-    bool isSoldOutNow(CartItem cartItem) =>
-        !(availabilityById[cartItem.foodItem.id] ??
-            cartItem.foodItem.available);
+    bool isArchivedNow(CartItem cartItem) {
+      if (!menuLoaded) return false;
+      return !liveById.containsKey(cartItem.foodItem.id);
+    }
+
+    bool isSoldOutNow(CartItem cartItem) {
+      if (!menuLoaded) return false;
+      final live = liveById[cartItem.foodItem.id];
+      if (live == null) return false;
+      return !live.available;
+    }
+
+    final archivedItems = cartItems.where(isArchivedNow).toList();
     final soldOutItems = cartItems.where(isSoldOutNow).toList();
 
     if (cartItems.isEmpty) {
@@ -57,6 +69,7 @@ class CartScreen extends ConsumerWidget {
               itemBuilder: (context, index) {
                 final cartItem = cartItems[index];
                 final food = cartItem.foodItem;
+                final isArchived = isArchivedNow(cartItem);
                 final isSoldOut = isSoldOutNow(cartItem);
 
                 return Padding(
@@ -115,7 +128,26 @@ class CartScreen extends ConsumerWidget {
                                 color: AppTheme.textPrimary,
                               ),
                             ),
-                            if (isSoldOut) ...[
+                            if (isArchived) ...[
+                              const SizedBox(height: 4),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 6, vertical: 1),
+                                decoration: BoxDecoration(
+                                  color:
+                                      AppTheme.errorColor.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: const Text(
+                                  'NO LONGER AVAILABLE',
+                                  style: TextStyle(
+                                    fontSize: 9,
+                                    color: AppTheme.errorColor,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ] else if (isSoldOut) ...[
                               const SizedBox(height: 4),
                               Container(
                                 padding: const EdgeInsets.symmetric(
@@ -157,7 +189,7 @@ class CartScreen extends ConsumerWidget {
                       ),
                       QuantitySelector(
                         quantity: cartItem.quantity,
-                        onIncrement: (isSoldOut || orderingDisabled)
+                        onIncrement: (isSoldOut || isArchived || orderingDisabled)
                             ? null
                             : () => cartNotifier.incrementQuantity(food.id),
                         onDecrement: orderingDisabled
@@ -201,6 +233,18 @@ class CartScreen extends ConsumerWidget {
                       onPressed: orderingDisabled
                           ? null
                           : () {
+                              if (archivedItems.isNotEmpty) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      '${archivedItems.first.foodItem.name} is no longer available. Please remove it from your cart.',
+                                    ),
+                                    behavior: SnackBarBehavior.floating,
+                                    backgroundColor: AppTheme.errorColor,
+                                  ),
+                                );
+                                return;
+                              }
                               if (soldOutItems.isNotEmpty) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(

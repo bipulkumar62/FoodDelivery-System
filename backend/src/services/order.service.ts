@@ -120,8 +120,8 @@ export async function placeOrder(dto: CreateOrderDto): Promise<IOrderResponse> {
     }
     if (!menuItem.isActive) {
       throw new AppError(
-        `Menu item not found: ${item.menuItemId}`,
-        HTTP_STATUS.NOT_FOUND,
+        `${menuItem.name} is no longer available.`,
+        HTTP_STATUS.BAD_REQUEST,
       );
     }
     if (!menuItem.available) {

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/cart_provider.dart';
 import '../../providers/menu_provider.dart';
 import '../../providers/settings_provider.dart';
+import '../../models/cart_item.dart';
 import '../../models/food_item.dart';
 import '../../providers/order_provider.dart';
 import '../../services/location_service.dart';
@@ -179,13 +180,38 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     }
 
     final cartItems = ref.read(cartProvider);
-    final liveMenu = ref.read(menuProvider).value ?? const <FoodItem>[];
-    final availabilityById = <String, bool>{
-      for (final item in liveMenu) item.id: item.available,
+    final menuAsync = ref.read(menuProvider);
+    final liveMenu = menuAsync.value ?? const <FoodItem>[];
+    final menuLoaded = menuAsync.hasValue;
+    final liveById = <String, FoodItem>{
+      for (final item in liveMenu) item.id: item,
     };
+    final archivedItems = menuLoaded
+        ? cartItems
+            .where((ci) => !liveById.containsKey(ci.foodItem.id))
+            .toList()
+        : <CartItem>[];
+    if (archivedItems.isNotEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '${archivedItems.first.foodItem.name} is no longer available. '
+              'Please remove it from your cart.',
+            ),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: AppTheme.errorColor,
+          ),
+        );
+      }
+      return;
+    }
     final soldOutItems = cartItems
-        .where((ci) =>
-            !(availabilityById[ci.foodItem.id] ?? ci.foodItem.available))
+        .where((ci) {
+          final live = liveById[ci.foodItem.id];
+          if (live == null) return false;
+          return !live.available;
+        })
         .toList();
     if (soldOutItems.isNotEmpty) {
       if (mounted) {

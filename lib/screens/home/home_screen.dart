@@ -44,6 +44,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     SocketService.instance.onMenuAvailabilityUpdated(_handleMenuUpdated);
+    SocketService.instance.onMenuCreated(_handleMenuUpdated);
+    SocketService.instance.onMenuUpdated(_handleMenuUpdated);
+    SocketService.instance.onMenuDeleted(_handleMenuUpdated);
     _refreshAll();
     _schedulePolling();
   }
@@ -75,6 +78,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   void dispose() {
     _cancelPolling();
     SocketService.instance.offMenuAvailabilityUpdated();
+    SocketService.instance.offMenuCreated();
+    SocketService.instance.offMenuUpdated();
+    SocketService.instance.offMenuDeleted();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
