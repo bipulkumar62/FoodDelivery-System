@@ -4,6 +4,8 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../services/socket_service.dart';
 import '../../services/audio_service.dart';
 import '../../network/api_client.dart';
+import '../../network/api_exception.dart';
+import '../../network/network_constants.dart';
 import '../../config/theme.dart';
 import 'admin_login_screen.dart';
 
@@ -50,9 +52,27 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
 
   Future<void> _fetchOrders() async {
     try {
+      debugPrint(
+        '[AdminOrders] GET ${NetworkConstants.baseUrl}/admin/orders | auth token present: '
+        '${ApiClient.instance.hasAuthToken}',
+      );
       final response = await ApiClient.instance.get('/admin/orders');
       if (!mounted) return;
-      final List<dynamic> orders = response is List ? response : (response['data'] as List<dynamic>?) ?? [];
+
+      final List<dynamic> orders;
+      try {
+        orders = response is List
+            ? response
+            : (response['data'] as List<dynamic>? ?? []);
+      } catch (e) {
+        debugPrint('[AdminOrders] response parse failed: $e');
+        if (!mounted) return;
+        setState(() {
+          _loading = false;
+          _error = 'Unexpected server response';
+        });
+        return;
+      }
 
       // Calculate today's revenue from Delivered orders
       double revenue = 0;
@@ -73,13 +93,34 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
         _todayRevenue = revenue;
         _deliveredCount = deliveredCount;
       });
+    } on ApiException catch (e) {
+      debugPrint('[AdminOrders] request failed: status=${e.statusCode} message=${e.message}');
+      if (e.statusCode == 401 || e.statusCode == 403) {
+        await _redirectToLogin();
+        return;
+      }
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = e.message;
+      });
     } catch (e) {
+      debugPrint('[AdminOrders] unexpected error: $e');
       if (!mounted) return;
       setState(() {
         _loading = false;
         _error = e.toString();
       });
     }
+  }
+
+  Future<void> _redirectToLogin() async {
+    debugPrint('[AdminOrders] session invalid, redirecting to login');
+    await adminLogout();
+    ApiClient.instance.clearToken();
+    pendingAdminRedirect = '/admin-orders';
+    if (!mounted) return;
+    Navigator.pushReplacementNamed(context, '/admin-login');
   }
 
   Future<void> _updateStatus(String id, String status) async {
@@ -92,6 +133,11 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
         AudioService().stopBeep();
       }
       _fetchOrders();
+    } on ApiException catch (e) {
+      debugPrint('[AdminOrders] status update failed: status=${e.statusCode} message=${e.message}');
+      if (e.statusCode == 401 || e.statusCode == 403) {
+        await _redirectToLogin();
+      }
     } catch (_) {}
   }
 
@@ -311,7 +357,7 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
                   onRefresh: _fetchOrders,
                   child: ListView.builder(
                     padding: const EdgeInsets.all(0),
-                    itemCount: _orders.isEmpty ? 1 : _orders.length + 1,
+                    itemCount: _orders.isEmpty ? 2 : _orders.length + 1,
                     itemBuilder: (context, index) {
                       // First item is revenue header
                       if (index == 0) {

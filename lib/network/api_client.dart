@@ -38,6 +38,10 @@ class ApiClient {
     _dio.options.headers.remove('Authorization');
   }
 
+  /// Whether an admin/customer auth header is currently attached.
+  /// Used for diagnostics only; never exposes the token value.
+  bool get hasAuthToken => _dio.options.headers['Authorization'] != null;
+
   Future<dynamic> get(
     String path, {
     Map<String, dynamic>? queryParameters,
