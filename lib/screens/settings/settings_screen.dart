@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../config/theme.dart';
 import '../../config/constants.dart';
+import '../../network/api_client.dart';
 import '../admin/admin_login_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
@@ -9,8 +10,15 @@ class SettingsScreen extends StatelessWidget {
 
   Future<void> _openAdmin(BuildContext context) async {
     final loggedIn = await isAdminLoggedIn();
+    final token = await getAdminToken();
+    final hasValidSession = loggedIn && token != null && token.isNotEmpty;
+    if (loggedIn && !hasValidSession) {
+      // Stale login flag without a stored token: clear it and start clean.
+      await adminLogout();
+      ApiClient.instance.clearToken();
+    }
     if (!context.mounted) return;
-    if (loggedIn) {
+    if (hasValidSession) {
       Navigator.pushNamed(context, '/admin-orders');
     } else {
       Navigator.pushNamed(context, '/admin-login');

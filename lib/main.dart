@@ -14,7 +14,12 @@ import 'screens/my_orders/my_orders_screen.dart';
 import 'screens/settings/settings_screen.dart';
 import 'screens/admin/admin_login_screen.dart';
 import 'screens/admin/admin_orders_screen.dart';
+import 'screens/admin/admin_menu_screen.dart';
+import 'screens/admin/add_menu_item_screen.dart';
+import 'screens/admin/edit_menu_item_screen.dart';
 import 'screens/admin/edit_restaurant_menu_screen.dart';
+import 'screens/admin/restaurant_settings_screen.dart';
+import 'models/admin_menu_item.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -72,6 +77,21 @@ class PawanBiryaniApp extends StatelessWidget {
         return MaterialPageRoute(
             builder: (_) =>
                 const _AdminRouteGuard(child: EditRestaurantMenuScreen()));
+      case '/restaurant-settings':
+        return MaterialPageRoute(
+            builder: (_) =>
+                const _AdminRouteGuard(child: RestaurantSettingsScreen()));
+      case '/admin-menu':
+        return MaterialPageRoute(
+            builder: (_) => const _AdminRouteGuard(child: AdminMenuScreen()));
+      case '/admin-menu/add':
+        return MaterialPageRoute(
+            builder: (_) => const _AdminRouteGuard(child: AddMenuItemScreen()));
+      case '/admin-menu/edit':
+        final item = settings.arguments as AdminMenuItem;
+        return MaterialPageRoute(
+            builder: (_) =>
+                _AdminRouteGuard(child: EditMenuItemScreen(item: item)));
       default:
         return MaterialPageRoute(builder: (_) => const MainShell());
     }
@@ -98,13 +118,21 @@ class _AdminRouteGuardState extends State<_AdminRouteGuard> {
 
   Future<void> _checkSession() async {
     final loggedIn = await isAdminLoggedIn();
-    if (!mounted) return;
-    if (!loggedIn) {
-      pendingAdminRedirect = '/edit-restaurant-menu';
-      Navigator.pushReplacementNamed(context, '/admin-login');
+    final token = await getAdminToken();
+    final hasValidSession = loggedIn && token != null && token.isNotEmpty;
+    if (hasValidSession) {
+      if (!mounted) return;
+      setState(() => _isAuthorized = true);
       return;
     }
-    setState(() => _isAuthorized = true);
+    if (loggedIn) {
+      // Stale login flag without a stored token: clear it and start clean.
+      await adminLogout();
+      ApiClient.instance.clearToken();
+    }
+    if (!mounted) return;
+    pendingAdminRedirect = '/edit-restaurant-menu';
+    Navigator.pushReplacementNamed(context, '/admin-login');
   }
 
   @override
