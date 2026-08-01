@@ -7,6 +7,7 @@ import '../../config/theme.dart';
 import '../../config/routes.dart';
 import '../../utils/helpers.dart';
 import '../../network/api_exception.dart';
+import '../../network/api_client.dart';
 
 class CheckoutScreen extends ConsumerStatefulWidget {
   const CheckoutScreen({super.key});
@@ -23,9 +24,11 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   final _landmarkController = TextEditingController();
   bool _isPlacing = false;
   bool _locationLoading = true;
+  bool _quoteLoading = false;
   String? _locationError;
   double? _latitude;
   double? _longitude;
+  double? _deliveryCharge;
 
   // Restaurant location (fixed)
   static const double _restaurantLat = LocationService.restaurantLat;
@@ -84,16 +87,87 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         _locationError = null;
       });
     }
+
+    await _loadDeliveryQuote();
+  }
+
+  Future<void> _loadDeliveryQuote() async {
+    final lat = _latitude;
+    final lng = _longitude;
+    if (lat == null || lng == null) return;
+
+    if (mounted) {
+      setState(() {
+        _quoteLoading = true;
+        _deliveryCharge = null;
+      });
+    }
+
+    try {
+      final response = await ApiClient.instance.post(
+        '/orders/delivery-quote',
+        data: {'latitude': lat, 'longitude': lng},
+      );
+      final data = response['data'] as Map<String, dynamic>;
+      if (data['withinDeliveryRange'] != true) {
+        if (mounted) {
+          setState(() {
+            _locationError = 'Sorry, we are currently not available in your area. We\'ll be available soon.';
+          });
+        }
+        return;
+      }
+      if (mounted) {
+        setState(() {
+          _deliveryCharge = (data['deliveryCharge'] as num).toDouble();
+        });
+      }
+    } catch (_) {
+      try {
+        ref.invalidate(deliveryRateProvider);
+        final rate = await ref.read(deliveryRateProvider.future);
+        final distance = LocationService.getDistanceFromRestaurant(lat, lng);
+        if (mounted) {
+          setState(() {
+            _deliveryCharge = distance.ceil() * rate;
+          });
+        }
+      } catch (_) {
+        if (mounted) {
+          setState(() => _locationError = 'Unable to calculate delivery charge. Please try again.');
+        }
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _quoteLoading = false);
+      }
+    }
   }
 
   Future<void> _placeOrder() async {
     if (!_formKey.currentState!.validate()) return;
 
-    if (_latitude == null || _longitude == null) {
+    if (_latitude == null || _longitude == null || _deliveryCharge == null) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(_locationError ?? 'Location not available. Please try again.'),
+            content: Text(_locationError ?? 'Delivery charge not available. Please try again.'),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: AppTheme.errorColor,
+          ),
+        );
+      }
+      return;
+    }
+
+    final cartItems = ref.read(cartProvider);
+    final soldOutItems =
+        cartItems.where((ci) => !ci.foodItem.available).toList();
+    if (soldOutItems.isNotEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${soldOutItems.first.foodItem.name} is currently sold out.'),
             behavior: SnackBarBehavior.floating,
             backgroundColor: AppTheme.errorColor,
           ),
@@ -103,8 +177,6 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     }
 
     setState(() => _isPlacing = true);
-
-    final cartItems = ref.read(cartProvider);
 
     try {
       final items = cartItems.map((ci) => {
@@ -245,8 +317,8 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   @override
   Widget build(BuildContext context) {
     final subtotal = ref.watch(cartSubtotalProvider);
-    final deliveryCharge = ref.watch(cartDeliveryProvider);
-    final grandTotal = ref.watch(cartGrandTotalProvider);
+    final deliveryCharge = _deliveryCharge ?? 0.0;
+    final grandTotal = subtotal + deliveryCharge;
     final totalItems = ref.watch(cartTotalItemsProvider);
 
     return Scaffold(
@@ -273,10 +345,22 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                     const SizedBox(height: 8),
                     _buildSummaryRow('Subtotal', formatPrice(subtotal)),
                     const SizedBox(height: 8),
-                    _buildSummaryRow('Delivery', formatPrice(deliveryCharge)),
+                    _buildSummaryRow(
+                      'Delivery',
+                      _quoteLoading
+                          ? 'Calculating...'
+                          : (_deliveryCharge != null
+                              ? formatPrice(_deliveryCharge!)
+                              : 'At checkout'),
+                    ),
                     const Divider(height: 16),
-                    _buildSummaryRow('Total', formatPrice(grandTotal),
-                        isBold: true),
+                    _buildSummaryRow(
+                      'Total',
+                      _deliveryCharge != null
+                          ? formatPrice(grandTotal)
+                          : 'At checkout',
+                      isBold: true,
+                    ),
                   ],
                 ),
               ),
@@ -336,7 +420,9 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: _isPlacing ? null : _placeOrder,
+                  onPressed: (_isPlacing || _quoteLoading || _deliveryCharge == null)
+                      ? null
+                      : _placeOrder,
                   child: _isPlacing
                       ? const SizedBox(
                           height: 20,

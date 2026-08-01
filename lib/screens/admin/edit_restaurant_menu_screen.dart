@@ -15,11 +15,13 @@ class EditRestaurantMenuScreen extends StatelessWidget {
             icon: Icons.storefront_outlined,
             title: 'Restaurant Settings',
             subtitle: 'Update restaurant details, timings and delivery information',
+            onTap: () => Navigator.pushNamed(context, '/restaurant-settings'),
           ),
           _buildPlaceholderCard(
             icon: Icons.restaurant_menu,
             title: 'Menu Management',
             subtitle: 'Add, edit or remove items from the menu',
+            onTap: () => Navigator.pushNamed(context, '/admin-menu'),
           ),
         ],
       ),
@@ -30,11 +32,13 @@ class EditRestaurantMenuScreen extends StatelessWidget {
     required IconData icon,
     required String title,
     required String subtitle,
+    VoidCallback? onTap,
   }) {
+    final enabled = onTap != null;
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: ListTile(
-        enabled: false,
+        enabled: enabled,
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         leading: Icon(icon, color: AppTheme.primaryColor),
@@ -46,17 +50,21 @@ class EditRestaurantMenuScreen extends StatelessWidget {
           ),
         ),
         subtitle: Text(subtitle),
-        trailing: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-          decoration: BoxDecoration(
-            color: AppTheme.primaryColor.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: const Text(
-            'Coming soon',
-            style: TextStyle(fontSize: 12, color: AppTheme.primaryColor),
-          ),
-        ),
+        trailing: enabled
+            ? const Icon(Icons.chevron_right, color: AppTheme.textSecondary)
+            : Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: const Text(
+                  'Coming soon',
+                  style: TextStyle(fontSize: 12, color: AppTheme.primaryColor),
+                ),
+              ),
+        onTap: onTap,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );

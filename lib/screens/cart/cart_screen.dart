@@ -15,9 +15,10 @@ class CartScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final cartItems = ref.watch(cartProvider);
     final subtotal = ref.watch(cartSubtotalProvider);
-    final deliveryCharge = ref.watch(cartDeliveryProvider);
-    final grandTotal = ref.watch(cartGrandTotalProvider);
+    final rate = ref.watch(deliveryRateProvider);
     final cartNotifier = ref.read(cartProvider.notifier);
+    final soldOutItems =
+        cartItems.where((ci) => !ci.foodItem.available).toList();
 
     if (cartItems.isEmpty) {
       return Scaffold(
@@ -99,6 +100,26 @@ class CartScreen extends ConsumerWidget {
                                 color: AppTheme.textPrimary,
                               ),
                             ),
+                            if (!food.available) ...[
+                              const SizedBox(height: 4),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 6, vertical: 1),
+                                decoration: BoxDecoration(
+                                  color:
+                                      AppTheme.errorColor.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: const Text(
+                                  'SOLD OUT',
+                                  style: TextStyle(
+                                    fontSize: 9,
+                                    color: AppTheme.errorColor,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ],
                             if (cartItem.selectedNotes.isNotEmpty)
                               Text(
                                 cartItem.selectedNotes.join(', '),
@@ -121,8 +142,9 @@ class CartScreen extends ConsumerWidget {
                       ),
                       QuantitySelector(
                         quantity: cartItem.quantity,
-                        onIncrement: () =>
-                            cartNotifier.incrementQuantity(food.id),
+                        onIncrement: food.available
+                            ? () => cartNotifier.incrementQuantity(food.id)
+                            : null,
                         onDecrement: () =>
                             cartNotifier.decrementQuantity(food.id),
                       ),
@@ -149,16 +171,31 @@ class CartScreen extends ConsumerWidget {
                 children: [
                   _buildPriceRow('Subtotal', formatPrice(subtotal)),
                   const SizedBox(height: 8),
-                  _buildPriceRow('Delivery Charge', formatPrice(deliveryCharge)),
-                  const Divider(height: 20),
-                  _buildPriceRow('Total', formatPrice(grandTotal),
-                      isTotal: true),
+                  _buildPriceRow(
+                    'Delivery Charge',
+                    rate.hasValue
+                        ? '${formatPrice(rate.value!)}/km · at checkout'
+                        : 'At checkout',
+                  ),
                   const SizedBox(height: 16),
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: () => Navigator.pushNamed(
-                          context, AppRoutes.checkout),
+                      onPressed: () {
+                        if (soldOutItems.isNotEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                '${soldOutItems.first.foodItem.name} is currently sold out.',
+                              ),
+                              behavior: SnackBarBehavior.floating,
+                              backgroundColor: AppTheme.errorColor,
+                            ),
+                          );
+                          return;
+                        }
+                        Navigator.pushNamed(context, AppRoutes.checkout);
+                      },
                       child: const Text('Proceed to Checkout'),
                     ),
                   ),

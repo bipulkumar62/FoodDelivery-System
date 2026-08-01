@@ -3,8 +3,8 @@ import '../config/theme.dart';
 
 class QuantitySelector extends StatelessWidget {
   final int quantity;
-  final VoidCallback onIncrement;
-  final VoidCallback onDecrement;
+  final VoidCallback? onIncrement;
+  final VoidCallback? onDecrement;
 
   const QuantitySelector({
     super.key,
@@ -30,7 +30,9 @@ class QuantitySelector extends StatelessWidget {
               padding: const EdgeInsets.all(8),
               child: Icon(
                 quantity == 1 ? Icons.delete_outline : Icons.remove,
-                color: AppTheme.primaryColor,
+                color: onDecrement == null
+                    ? AppTheme.textSecondary
+                    : AppTheme.primaryColor,
                 size: 20,
               ),
             ),
@@ -51,9 +53,11 @@ class QuantitySelector extends StatelessWidget {
             borderRadius: BorderRadius.circular(12),
             child: Container(
               padding: const EdgeInsets.all(8),
-              child: const Icon(
+              child: Icon(
                 Icons.add,
-                color: AppTheme.primaryColor,
+                color: onIncrement == null
+                    ? AppTheme.textSecondary
+                    : AppTheme.primaryColor,
                 size: 20,
               ),
             ),

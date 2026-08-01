@@ -35,6 +35,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
     final item = widget.item;
     final cartNotifier = ref.read(cartProvider.notifier);
     final isInCart = cartNotifier.isInCart(item.id);
+    final isSoldOut = !item.available;
 
     return Scaffold(
       appBar: AppBar(
@@ -113,6 +114,26 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                                 color: AppTheme.textPrimary,
                               ),
                             ),
+                            if (isSoldOut) ...[
+                              const SizedBox(height: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 10, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color:
+                                      AppTheme.errorColor.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Text(
+                                  'SOLD OUT',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: AppTheme.errorColor,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ],
                             const SizedBox(height: 4),
                           ],
                         ),
@@ -148,7 +169,9 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                   const SizedBox(height: 8),
                   QuantitySelector(
                     quantity: _quantity,
-                    onIncrement: () => setState(() => _quantity++),
+                    onIncrement: isSoldOut
+                        ? null
+                        : () => setState(() => _quantity++),
                     onDecrement: () {
                       if (_quantity > 1) {
                         setState(() => _quantity--);
@@ -215,22 +238,25 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                         child: const Text('Remove'),
                       )
                     : ElevatedButton(
-                        onPressed: () {
-                          for (int i = 0; i < _quantity; i++) {
-                            ref.read(cartProvider.notifier).addToCart(item);
-                          }
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('$_quantity x ${item.name} added'),
-                              behavior: SnackBarBehavior.floating,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                          );
-                          Navigator.pop(context);
-                        },
-                        child: const Text('Add to Cart'),
+                        onPressed: isSoldOut
+                            ? null
+                            : () {
+                                for (int i = 0; i < _quantity; i++) {
+                                  ref.read(cartProvider.notifier).addToCart(item);
+                                }
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content:
+                                        Text('$_quantity x ${item.name} added'),
+                                    behavior: SnackBarBehavior.floating,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                );
+                                Navigator.pop(context);
+                              },
+                        child: Text(isSoldOut ? 'SOLD OUT' : 'Add to Cart'),
                       ),
               ),
             ],

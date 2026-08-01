@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/cart_item.dart';
 import '../models/food_item.dart';
-import '../config/constants.dart';
+import '../network/api_client.dart';
 
 class CartNotifier extends Notifier<List<CartItem>> {
   @override
@@ -70,15 +70,9 @@ final cartSubtotalProvider = Provider<double>((ref) {
   return items.fold(0.0, (sum, item) => sum + item.totalPrice);
 });
 
-final cartDeliveryProvider = Provider<double>((ref) {
-  final items = ref.watch(cartProvider);
-  if (items.isEmpty) return 0;
-  final subtotal = ref.watch(cartSubtotalProvider);
-  return subtotal >= 299 ? 0 : AppConstants.deliveryCharge;
-});
-
-final cartGrandTotalProvider = Provider<double>((ref) {
-  final subtotal = ref.watch(cartSubtotalProvider);
-  final delivery = ref.watch(cartDeliveryProvider);
-  return subtotal + delivery;
+/// Current per-km delivery rate from the restaurant's public settings.
+final deliveryRateProvider = FutureProvider<double>((ref) async {
+  final response = await ApiClient.instance.get('/settings');
+  final data = response['data'] as Map<String, dynamic>;
+  return (data['deliveryRatePerKm'] as num).toDouble();
 });

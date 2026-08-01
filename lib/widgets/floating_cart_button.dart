@@ -35,7 +35,7 @@ class FloatingCartButton extends ConsumerWidget {
           ),
           const SizedBox(width: 12),
           Text(
-            formatPrice(ref.watch(cartGrandTotalProvider)),
+            formatPrice(ref.watch(cartSubtotalProvider)),
             style: const TextStyle(
               color: Colors.white,
               fontSize: 16,

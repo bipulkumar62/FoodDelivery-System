@@ -1,7 +1,6 @@
 class AppConstants {
   static const String appName = 'Pawan Biryani';
   static const String tagline = 'Hot • Fresh • Delivered Fast';
-  static const double deliveryCharge = 30.0;
   static const String assetImagePath = 'assets/images/';
 
   static const String biryaniIcon = '🍚';

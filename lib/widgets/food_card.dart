@@ -17,7 +17,9 @@ class FoodCard extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(16),
-        child: Padding(
+        child: Opacity(
+          opacity: item.available ? 1.0 : 0.55,
+          child: Padding(
           padding: const EdgeInsets.all(12),
           child: Row(
             children: [
@@ -114,11 +116,11 @@ class FoodCard extends StatelessWidget {
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: const Text(
-                              'Unavailable',
+                              'SOLD OUT',
                               style: TextStyle(
                                 fontSize: 10,
                                 color: AppTheme.errorColor,
-                                fontWeight: FontWeight.w500,
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
                           ),
@@ -152,6 +154,7 @@ class FoodCard extends StatelessWidget {
               ),
             ],
           ),
+        ),
         ),
       ),
     );
