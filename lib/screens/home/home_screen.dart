@@ -8,6 +8,7 @@ import '../../services/socket_service.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/floating_cart_button.dart';
 import '../../widgets/offline_state.dart';
+import 'widgets/category_selector.dart';
 import 'widgets/full_menu_section.dart';
 import 'widgets/restaurant_header.dart';
 import 'widgets/search_bar_widget.dart';
@@ -23,7 +24,9 @@ class HomeScreen extends ConsumerStatefulWidget {
 
 class _HomeScreenState extends ConsumerState<HomeScreen>
     with WidgetsBindingObserver {
+  static const _allCategory = '';
   String _searchQuery = '';
+  String _selectedCategory = _allCategory;
   Timer? _pollTimer;
   bool _appInForeground = true;
 
@@ -32,11 +35,31 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   bool get _shouldPoll => widget.isActive && _appInForeground;
 
   List<FoodItem> _filterItems(List<FoodItem> items) {
-    if (_searchQuery.isEmpty) return items;
-    return items
-        .where((item) =>
-            item.name.toLowerCase().contains(_searchQuery.toLowerCase()))
-        .toList();
+    var filtered = items;
+    if (_selectedCategory != _allCategory) {
+      filtered = filtered
+          .where((item) => item.category == _selectedCategory)
+          .toList();
+    }
+    if (_searchQuery.isNotEmpty) {
+      filtered = filtered
+          .where((item) =>
+              item.name.toLowerCase().contains(_searchQuery.toLowerCase()))
+          .toList();
+    }
+    return filtered;
+  }
+
+  /// "All" first, then every unique category in first-appearance order.
+  static List<String> _buildCategories(List<FoodItem> items) {
+    final categories = <String>['All'];
+    final seen = <String>{};
+    for (final item in items) {
+      if (seen.add(item.category)) {
+        categories.add(item.category);
+      }
+    }
+    return categories;
   }
 
   @override
@@ -110,6 +133,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   Widget build(BuildContext context) {
     final menuAsync = ref.watch(menuProvider);
     final settings = ref.watch(restaurantSettingsProvider);
+    final items = menuAsync.value ?? const <FoodItem>[];
+    final categories = _buildCategories(items);
+
+    if (_selectedCategory != _allCategory &&
+        !categories.contains(_selectedCategory)) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _selectedCategory != _allCategory) {
+          setState(() => _selectedCategory = _allCategory);
+        }
+      });
+    }
 
     return Scaffold(
       body: SingleChildScrollView(
@@ -121,10 +155,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             SearchBarWidget(
               onSearch: (query) => setState(() => _searchQuery = query),
             ),
+            const SizedBox(height: 12),
+            CategorySelector(
+              categories: categories,
+              selected: _selectedCategory,
+              onSelected: (category) =>
+                  setState(() => _selectedCategory = category),
+            ),
             const SizedBox(height: 16),
             menuAsync.when(
-              data: (items) {
-                final filtered = _filterItems(items);
+              data: (data) {
+                final filtered = _filterItems(data);
 
                 return _searchQuery.isEmpty
                     ? FullMenuSection(items: filtered)

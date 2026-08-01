@@ -28,12 +28,27 @@ export async function getCategories(): Promise<string[]> {
 }
 
 // Admin functions
+function normalizeCategory(category: string): string {
+  const cleaned = category.trim().replace(/\s+/g, ' ');
+  if (!cleaned) return cleaned;
+  return cleaned
+    .split(' ')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
+}
+
 export async function createMenuItem(data: Partial<IMenuItem>): Promise<IMenuItem> {
+  if (typeof data.category === 'string') {
+    data.category = normalizeCategory(data.category);
+  }
   const item = await Menu.create(data);
   return item;
 }
 
 export async function updateMenuItem(id: string, data: Partial<IMenuItem>): Promise<IMenuItem> {
+  if (typeof data.category === 'string') {
+    data.category = normalizeCategory(data.category);
+  }
   const item = await Menu.findByIdAndUpdate(id, data, { new: true, runValidators: true });
   if (!item) {
     throw new AppError('Menu item not found', HTTP_STATUS.NOT_FOUND);

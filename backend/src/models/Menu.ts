@@ -26,7 +26,6 @@ const menuSchema = new Schema<IMenuItem>(
       type: String,
       required: [true, 'Category is required'],
       trim: true,
-      lowercase: true,
     },
     price: {
       type: Number,

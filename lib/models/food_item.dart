@@ -32,13 +32,25 @@ class FoodItem {
       description: json['description'] as String? ?? '',
       price: (json['price'] as num?)?.toDouble() ?? 0.0,
       image: _normalizeUrl(json['image'] as String? ?? ''),
-      category: json['category'] as String? ?? '',
+      category: normalizeCategory(json['category'] as String? ?? ''),
       veg: json['veg'] as bool? ?? false,
       available: json['available'] as bool? ?? true,
       isActive: json['isActive'] as bool? ?? true,
       createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt'] as String) : DateTime.now(),
       updatedAt: json['updatedAt'] != null ? DateTime.parse(json['updatedAt'] as String) : DateTime.now(),
     );
+  }
+
+  /// Trim, collapse repeated spaces and title-case a category name so that
+  /// " roll ", "ROLL" and "Roll" all behave as a single category.
+  static String normalizeCategory(String category) {
+    final cleaned = category.trim().replaceAll(RegExp(r'\s+'), ' ');
+    if (cleaned.isEmpty) return 'Other';
+    return cleaned
+        .split(' ')
+        .map((word) =>
+            word.isEmpty ? word : word[0].toUpperCase() + word.substring(1).toLowerCase())
+        .join(' ');
   }
 
   Map<String, dynamic> toJson() => {
