@@ -84,6 +84,14 @@ class SocketService {
     });
   }
 
+  void onMenuAvailabilityUpdated(Function(dynamic) callback) {
+    _socket.on('menu:availability-updated', callback);
+  }
+
+  void offMenuAvailabilityUpdated() {
+    _socket.off('menu:availability-updated');
+  }
+
   void offNewOrder() {
     _socket.off('order:new');
   }

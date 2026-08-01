@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/cart_provider.dart';
+import '../../providers/menu_provider.dart';
+import '../../providers/settings_provider.dart';
+import '../../models/food_item.dart';
 import '../../providers/order_provider.dart';
 import '../../services/location_service.dart';
 import '../../config/theme.dart';
@@ -8,6 +11,7 @@ import '../../config/routes.dart';
 import '../../utils/helpers.dart';
 import '../../network/api_exception.dart';
 import '../../network/api_client.dart';
+import '../../widgets/availability_banner.dart';
 
 class CheckoutScreen extends ConsumerStatefulWidget {
   const CheckoutScreen({super.key});
@@ -145,6 +149,20 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   }
 
   Future<void> _placeOrder() async {
+    final settings = ref.read(restaurantSettingsProvider);
+    if (!settings.acceptingOrders) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text(offlineOrderingMessage),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: AppTheme.errorColor,
+          ),
+        );
+      }
+      return;
+    }
+
     if (!_formKey.currentState!.validate()) return;
 
     if (_latitude == null || _longitude == null || _deliveryCharge == null) {
@@ -161,8 +179,14 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     }
 
     final cartItems = ref.read(cartProvider);
-    final soldOutItems =
-        cartItems.where((ci) => !ci.foodItem.available).toList();
+    final liveMenu = ref.read(menuProvider).value ?? const <FoodItem>[];
+    final availabilityById = <String, bool>{
+      for (final item in liveMenu) item.id: item.available,
+    };
+    final soldOutItems = cartItems
+        .where((ci) =>
+            !(availabilityById[ci.foodItem.id] ?? ci.foodItem.available))
+        .toList();
     if (soldOutItems.isNotEmpty) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -320,6 +344,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     final deliveryCharge = _deliveryCharge ?? 0.0;
     final grandTotal = subtotal + deliveryCharge;
     final totalItems = ref.watch(cartTotalItemsProvider);
+    final orderingDisabled = !ref.watch(restaurantSettingsProvider).acceptingOrders;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Checkout')),
@@ -330,6 +355,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              if (orderingDisabled) const AvailabilityBanner(),
               _buildLocationStatus(),
               Container(
                 padding: const EdgeInsets.all(16),
@@ -420,7 +446,10 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: (_isPlacing || _quoteLoading || _deliveryCharge == null)
+                  onPressed: (orderingDisabled ||
+                          _isPlacing ||
+                          _quoteLoading ||
+                          _deliveryCharge == null)
                       ? null
                       : _placeOrder,
                   child: _isPlacing

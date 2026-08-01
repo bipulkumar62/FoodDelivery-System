@@ -90,7 +90,7 @@ export async function placeOrder(dto: CreateOrderDto): Promise<IOrderResponse> {
   const settings = await getSettingsOrCreate();
   if (!settings.acceptingOrders) {
     throw new AppError(
-      'The restaurant is currently not accepting orders.',
+      'We are currently offline. Ordering is temporarily unavailable. Please try again later.',
       HTTP_STATUS.BAD_REQUEST,
     );
   }

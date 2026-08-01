@@ -109,6 +109,9 @@ export async function updateMenuItem(
       );
     }
     const item = await menuService.updateMenuItem(req.params.id, req.body);
+    if (typeof req.body.available === 'boolean') {
+      global.io?.emit('menu:availability-updated', { item });
+    }
     res.status(HTTP_STATUS.OK).json({
       success: true,
       message: 'Menu item updated successfully',
@@ -129,6 +132,7 @@ export async function updateMenuItemAvailability(
       req.params.id,
       req.body.available,
     );
+    global.io?.emit('menu:availability-updated', { item });
     res.status(HTTP_STATUS.OK).json({
       success: true,
       message: 'Menu item availability updated successfully',

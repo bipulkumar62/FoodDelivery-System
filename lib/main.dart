@@ -20,6 +20,7 @@ import 'screens/admin/edit_menu_item_screen.dart';
 import 'screens/admin/edit_restaurant_menu_screen.dart';
 import 'screens/admin/restaurant_settings_screen.dart';
 import 'models/admin_menu_item.dart';
+import 'providers/settings_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -146,25 +147,20 @@ class _AdminRouteGuardState extends State<_AdminRouteGuard> {
   }
 }
 
-class MainShell extends StatefulWidget {
+class MainShell extends ConsumerStatefulWidget {
   const MainShell({super.key});
 
   @override
-  State<MainShell> createState() => _MainShellState();
+  ConsumerState<MainShell> createState() => _MainShellState();
 }
 
-class _MainShellState extends State<MainShell> {
+class _MainShellState extends ConsumerState<MainShell> {
   int _currentIndex = 0;
-
-  final List<Widget> _screens = [
-    const HomeScreen(),
-    const MyOrdersScreen(),
-    const SettingsScreen(),
-  ];
 
   @override
   void initState() {
     super.initState();
+    ref.read(restaurantSettingsProvider.notifier).refresh();
     _requestLocationPermissionAtStart();
   }
 
@@ -204,10 +200,15 @@ class _MainShellState extends State<MainShell> {
 
   @override
   Widget build(BuildContext context) {
+    final screens = [
+      HomeScreen(isActive: _currentIndex == 0),
+      const MyOrdersScreen(),
+      const SettingsScreen(),
+    ];
     return Scaffold(
       body: IndexedStack(
         index: _currentIndex,
-        children: _screens,
+        children: screens,
       ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,

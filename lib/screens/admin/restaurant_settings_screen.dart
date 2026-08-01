@@ -82,6 +82,12 @@ class _RestaurantSettingsScreenState extends State<RestaurantSettingsScreen> {
     Navigator.pushReplacementNamed(context, '/admin-login');
   }
 
+  void _restoreForm() {
+    _nameController.text = _loadedName;
+    _rateController.text = _formatRate(_loadedRate);
+    _acceptingOrders = _loadedAcceptingOrders;
+  }
+
   Future<void> _save() async {
     final name = _nameController.text.trim();
     final rate = double.tryParse(_rateController.text.trim());
@@ -143,10 +149,16 @@ class _RestaurantSettingsScreenState extends State<RestaurantSettingsScreen> {
         return;
       }
       if (!mounted) return;
-      setState(() => _formError = _extractBackendErrors(e));
+      setState(() {
+        _restoreForm();
+        _formError = _extractBackendErrors(e);
+      });
     } catch (_) {
       if (!mounted) return;
-      setState(() => _formError = 'Failed to save settings. Please try again.');
+      setState(() {
+        _restoreForm();
+        _formError = 'Failed to save settings. Please try again.';
+      });
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
@@ -221,6 +233,7 @@ class _RestaurantSettingsScreenState extends State<RestaurantSettingsScreen> {
               padding: const EdgeInsets.all(16),
               child: TextField(
                 controller: _nameController,
+                enabled: !_isSaving,
                 textInputAction: TextInputAction.next,
                 maxLength: 100,
                 decoration: const InputDecoration(
@@ -236,6 +249,7 @@ class _RestaurantSettingsScreenState extends State<RestaurantSettingsScreen> {
               padding: const EdgeInsets.all(16),
               child: TextField(
                 controller: _rateController,
+                enabled: !_isSaving,
                 keyboardType:
                     const TextInputType.numberWithOptions(decimal: true),
                 decoration: const InputDecoration(
@@ -248,7 +262,9 @@ class _RestaurantSettingsScreenState extends State<RestaurantSettingsScreen> {
           Card(
             child: SwitchListTile(
               value: _acceptingOrders,
-              onChanged: (value) => setState(() => _acceptingOrders = value),
+              onChanged: _isSaving
+                  ? null
+                  : (value) => setState(() => _acceptingOrders = value),
               activeThumbColor: AppTheme.primaryColor,
               secondary: const Icon(
                 Icons.delivery_dining_outlined,

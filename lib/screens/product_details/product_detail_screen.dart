@@ -3,7 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../models/food_item.dart';
 import '../../providers/cart_provider.dart';
+import '../../providers/menu_provider.dart';
+import '../../providers/settings_provider.dart';
 import '../../widgets/quantity_selector.dart';
+import '../../widgets/availability_banner.dart';
 import '../../config/theme.dart';
 import '../../config/routes.dart';
 import '../../utils/helpers.dart';
@@ -35,7 +38,13 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
     final item = widget.item;
     final cartNotifier = ref.read(cartProvider.notifier);
     final isInCart = cartNotifier.isInCart(item.id);
-    final isSoldOut = !item.available;
+    final liveItems = ref.watch(menuProvider).value ?? const <FoodItem>[];
+    final liveItem = liveItems.firstWhere(
+      (i) => i.id == item.id,
+      orElse: () => item,
+    );
+    final isSoldOut = !liveItem.available;
+    final orderingDisabled = !ref.watch(restaurantSettingsProvider).acceptingOrders;
 
     return Scaffold(
       appBar: AppBar(
@@ -54,6 +63,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            if (orderingDisabled) const AvailabilityBanner(),
             Container(
               height: 280,
               width: double.infinity,
@@ -169,14 +179,16 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                   const SizedBox(height: 8),
                   QuantitySelector(
                     quantity: _quantity,
-                    onIncrement: isSoldOut
+                    onIncrement: (isSoldOut || orderingDisabled)
                         ? null
                         : () => setState(() => _quantity++),
-                    onDecrement: () {
-                      if (_quantity > 1) {
-                        setState(() => _quantity--);
-                      }
-                    },
+                    onDecrement: orderingDisabled
+                        ? null
+                        : () {
+                            if (_quantity > 1) {
+                              setState(() => _quantity--);
+                            }
+                          },
                   ),
                 ],
               ),
@@ -238,7 +250,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                         child: const Text('Remove'),
                       )
                     : ElevatedButton(
-                        onPressed: isSoldOut
+                        onPressed: (isSoldOut || orderingDisabled)
                             ? null
                             : () {
                                 for (int i = 0; i < _quantity; i++) {

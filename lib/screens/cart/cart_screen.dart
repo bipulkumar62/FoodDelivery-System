@@ -2,8 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../providers/cart_provider.dart';
+import '../../providers/menu_provider.dart';
+import '../../providers/settings_provider.dart';
+import '../../models/cart_item.dart';
+import '../../models/food_item.dart';
 import '../../widgets/quantity_selector.dart';
 import '../../widgets/empty_state.dart';
+import '../../widgets/availability_banner.dart';
 import '../../config/theme.dart';
 import '../../config/routes.dart';
 import '../../utils/helpers.dart';
@@ -16,9 +21,17 @@ class CartScreen extends ConsumerWidget {
     final cartItems = ref.watch(cartProvider);
     final subtotal = ref.watch(cartSubtotalProvider);
     final rate = ref.watch(deliveryRateProvider);
+    final settings = ref.watch(restaurantSettingsProvider);
+    final orderingDisabled = !settings.acceptingOrders;
     final cartNotifier = ref.read(cartProvider.notifier);
-    final soldOutItems =
-        cartItems.where((ci) => !ci.foodItem.available).toList();
+    final liveMenu = ref.watch(menuProvider).value ?? const <FoodItem>[];
+    final availabilityById = <String, bool>{
+      for (final item in liveMenu) item.id: item.available,
+    };
+    bool isSoldOutNow(CartItem cartItem) =>
+        !(availabilityById[cartItem.foodItem.id] ??
+            cartItem.foodItem.available);
+    final soldOutItems = cartItems.where(isSoldOutNow).toList();
 
     if (cartItems.isEmpty) {
       return Scaffold(
@@ -35,6 +48,7 @@ class CartScreen extends ConsumerWidget {
       appBar: AppBar(title: const Text('Cart')),
       body: Column(
         children: [
+          if (orderingDisabled) const AvailabilityBanner(),
           Expanded(
             child: ListView.separated(
               padding: const EdgeInsets.all(16),
@@ -43,6 +57,7 @@ class CartScreen extends ConsumerWidget {
               itemBuilder: (context, index) {
                 final cartItem = cartItems[index];
                 final food = cartItem.foodItem;
+                final isSoldOut = isSoldOutNow(cartItem);
 
                 return Padding(
                   padding: const EdgeInsets.symmetric(vertical: 8),
@@ -100,7 +115,7 @@ class CartScreen extends ConsumerWidget {
                                 color: AppTheme.textPrimary,
                               ),
                             ),
-                            if (!food.available) ...[
+                            if (isSoldOut) ...[
                               const SizedBox(height: 4),
                               Container(
                                 padding: const EdgeInsets.symmetric(
@@ -142,11 +157,13 @@ class CartScreen extends ConsumerWidget {
                       ),
                       QuantitySelector(
                         quantity: cartItem.quantity,
-                        onIncrement: food.available
-                            ? () => cartNotifier.incrementQuantity(food.id)
-                            : null,
-                        onDecrement: () =>
-                            cartNotifier.decrementQuantity(food.id),
+                        onIncrement: (isSoldOut || orderingDisabled)
+                            ? null
+                            : () => cartNotifier.incrementQuantity(food.id),
+                        onDecrement: orderingDisabled
+                            ? null
+                            : () =>
+                                cartNotifier.decrementQuantity(food.id),
                       ),
                     ],
                   ),
@@ -181,21 +198,23 @@ class CartScreen extends ConsumerWidget {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: () {
-                        if (soldOutItems.isNotEmpty) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                '${soldOutItems.first.foodItem.name} is currently sold out.',
-                              ),
-                              behavior: SnackBarBehavior.floating,
-                              backgroundColor: AppTheme.errorColor,
-                            ),
-                          );
-                          return;
-                        }
-                        Navigator.pushNamed(context, AppRoutes.checkout);
-                      },
+                      onPressed: orderingDisabled
+                          ? null
+                          : () {
+                              if (soldOutItems.isNotEmpty) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      '${soldOutItems.first.foodItem.name} is currently sold out.',
+                                    ),
+                                    behavior: SnackBarBehavior.floating,
+                                    backgroundColor: AppTheme.errorColor,
+                                  ),
+                                );
+                                return;
+                              }
+                              Navigator.pushNamed(context, AppRoutes.checkout);
+                            },
                       child: const Text('Proceed to Checkout'),
                     ),
                   ),

@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../config/storage_constants.dart';
@@ -90,24 +91,37 @@ class ImageUploadService {
     final publicUrl =
         '${StorageConstants.supabaseUrl}/storage/v1/object/public/${StorageConstants.bucketName}/$key';
 
+    debugPrint(
+      '[ImageUpload] Uploading to bucket="${StorageConstants.bucketName}" '
+      'path="$key" size=${bytes.length}B mime=${_contentTypeFor(extension)}',
+    );
+
     try {
       final response = await _dio.post(
-        'object/${StorageConstants.bucketName}/$key',
+        '/object/${StorageConstants.bucketName}/$key',
         data: bytes,
         options: Options(
           headers: {'Content-Type': _contentTypeFor(extension)},
         ),
         onSendProgress: onProgress,
       );
+      debugPrint(
+        '[ImageUpload] Response status=${response.statusCode} '
+        'message=${response.data}',
+      );
       if (response.statusCode == null ||
           response.statusCode! < 200 ||
           response.statusCode! >= 300) {
         throw ImageUploadException(
           ImageUploadErrorType.uploadFailed,
-          'Upload failed with status ${response.statusCode}.',
+          _statusMessage(response.statusCode),
         );
       }
     } on DioException catch (e) {
+      debugPrint(
+        '[ImageUpload] Error type=${e.type} status=${e.response?.statusCode} '
+        'message=${e.response?.data}',
+      );
       throw _mapDioError(e);
     }
 
@@ -125,10 +139,42 @@ class ImageUploadService {
     return publicUrl;
   }
 
+  String _statusMessage(int? status) {
+    switch (status) {
+      case 400:
+        return 'Invalid image. The file could not be uploaded.';
+      case 401:
+      case 403:
+        return 'Storage permission denied. '
+            'The storage bucket is not configured for admin uploads.';
+      case 404:
+        return 'Bucket not found. The storage bucket is misconfigured.';
+      case 413:
+        return 'File too large. Please choose a smaller image.';
+      case 408:
+        return 'Upload timed out. Please check your connection and retry.';
+      case 429:
+        return 'Too many uploads right now. Please try again in a moment.';
+      case 500:
+      case 502:
+      case 503:
+      case 504:
+        return 'Supabase storage is temporarily unavailable. '
+            'Please try again in a moment.';
+      default:
+        return 'Upload failed (HTTP $status). Please try again.';
+    }
+  }
+
   ImageUploadException _mapDioError(DioException e) {
+    if (e.type == DioExceptionType.sendTimeout) {
+      return const ImageUploadException(
+        ImageUploadErrorType.networkError,
+        'Upload timed out. Please check your connection and retry.',
+      );
+    }
     if (e.type == DioExceptionType.connectionTimeout ||
         e.type == DioExceptionType.receiveTimeout ||
-        e.type == DioExceptionType.sendTimeout ||
         e.type == DioExceptionType.connectionError) {
       return const ImageUploadException(
         ImageUploadErrorType.networkError,
@@ -137,16 +183,9 @@ class ImageUploadService {
     }
     final status = e.response?.statusCode;
     if (status != null) {
-      if (status == 401 || status == 403) {
-        return ImageUploadException(
-          ImageUploadErrorType.uploadFailed,
-          'Upload permission denied (HTTP $status). '
-          'The storage bucket is not configured for admin uploads.',
-        );
-      }
       return ImageUploadException(
         ImageUploadErrorType.uploadFailed,
-        'Upload failed (HTTP $status). Please try again.',
+        _statusMessage(status),
       );
     }
     return const ImageUploadException(
