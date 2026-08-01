@@ -9,6 +9,7 @@ export async function getAllMenu(
 ): Promise<void> {
   try {
     const items = await menuService.getAllMenuItems();
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
     res.status(HTTP_STATUS.OK).json({
       success: true,
       message: 'Menu fetched successfully',
@@ -27,6 +28,7 @@ export async function getMenuItem(
 ): Promise<void> {
   try {
     const item = await menuService.getMenuItemById(req.params.id);
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
     res.status(HTTP_STATUS.OK).json({
       success: true,
       data: item,

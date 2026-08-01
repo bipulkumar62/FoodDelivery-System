@@ -5,12 +5,12 @@ import '../../models/food_item.dart';
 import '../../providers/menu_provider.dart';
 import '../../providers/settings_provider.dart';
 import '../../services/socket_service.dart';
-import '../../widgets/availability_banner.dart';
-import '../../widgets/floating_cart_button.dart';
 import '../../widgets/empty_state.dart';
+import '../../widgets/floating_cart_button.dart';
+import '../../widgets/offline_state.dart';
+import 'widgets/full_menu_section.dart';
 import 'widgets/restaurant_header.dart';
 import 'widgets/search_bar_widget.dart';
-import 'widgets/full_menu_section.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key, this.isActive = true});
@@ -116,7 +116,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (!settings.acceptingOrders) const AvailabilityBanner(),
+            if (!settings.acceptingOrders) const OfflineState(),
             const RestaurantHeader(),
             SearchBarWidget(
               onSearch: (query) => setState(() => _searchQuery = query),

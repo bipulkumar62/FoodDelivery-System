@@ -4,7 +4,6 @@ import { HTTP_STATUS } from '../constants';
 
 export async function getAllMenuItems(): Promise<IMenuItem[]> {
   return Menu.find({
-    category: { $regex: /^biryani$/i },
     $or: [{ isActive: true }, { isActive: { $exists: false } }],
   }).sort({ name: 1 });
 }
@@ -57,7 +56,7 @@ export async function updateMenuItemAvailability(id: string, available: boolean)
 export async function deleteMenuItem(id: string): Promise<IMenuItem> {
   const item = await Menu.findByIdAndUpdate(
     id,
-    { isActive: false },
+    { isActive: false, available: false },
     { new: true, runValidators: true },
   );
   if (!item) {

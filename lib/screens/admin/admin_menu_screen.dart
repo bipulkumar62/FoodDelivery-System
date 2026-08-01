@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../../config/theme.dart';
 import '../../models/admin_menu_item.dart';
 import '../../providers/admin_menu_provider.dart';
+import '../../providers/menu_provider.dart';
 import '../../network/api_client.dart';
 import '../../network/api_exception.dart';
 import '../../utils/helpers.dart';
@@ -30,6 +31,11 @@ class _AdminMenuScreenState extends ConsumerState<AdminMenuScreen> {
     ref.invalidate(adminMenuProvider);
   }
 
+  void _invalidateMenu() {
+    ref.invalidate(adminMenuProvider);
+    ref.invalidate(menuProvider);
+  }
+
   Future<void> _redirectToLogin() async {
     await adminLogout();
     ApiClient.instance.clearToken();
@@ -45,7 +51,7 @@ class _AdminMenuScreenState extends ConsumerState<AdminMenuScreen> {
       await ref
           .read(adminMenuRepositoryProvider)
           .updateAvailability(item.id, !item.available);
-      ref.invalidate(adminMenuProvider);
+      _invalidateMenu();
     } on ApiException catch (e) {
       if (e.statusCode == 401) {
         await _redirectToLogin();
@@ -89,7 +95,7 @@ class _AdminMenuScreenState extends ConsumerState<AdminMenuScreen> {
     setState(() => _busyItemIds.add(item.id));
     try {
       await ref.read(adminMenuRepositoryProvider).archiveItem(item.id);
-      ref.invalidate(adminMenuProvider);
+      _invalidateMenu();
     } on ApiException catch (e) {
       if (e.statusCode == 401) {
         await _redirectToLogin();
@@ -116,7 +122,7 @@ class _AdminMenuScreenState extends ConsumerState<AdminMenuScreen> {
   Future<void> _onAddItem() async {
     final added = await Navigator.pushNamed(context, '/admin-menu/add');
     if (added == true && mounted) {
-      ref.invalidate(adminMenuProvider);
+      _invalidateMenu();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Item added successfully'),
@@ -130,7 +136,7 @@ class _AdminMenuScreenState extends ConsumerState<AdminMenuScreen> {
     final updated = await Navigator.pushNamed(context, '/admin-menu/edit',
         arguments: item);
     if (updated == true && mounted) {
-      ref.invalidate(adminMenuProvider);
+      _invalidateMenu();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Item updated successfully'),

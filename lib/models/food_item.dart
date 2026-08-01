@@ -7,6 +7,7 @@ class FoodItem {
   final String category;
   final bool veg;
   final bool available;
+  final bool isActive;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -19,6 +20,7 @@ class FoodItem {
     required this.category,
     this.veg = false,
     this.available = true,
+    this.isActive = true,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -33,6 +35,7 @@ class FoodItem {
       category: json['category'] as String? ?? '',
       veg: json['veg'] as bool? ?? false,
       available: json['available'] as bool? ?? true,
+      isActive: json['isActive'] as bool? ?? true,
       createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt'] as String) : DateTime.now(),
       updatedAt: json['updatedAt'] != null ? DateTime.parse(json['updatedAt'] as String) : DateTime.now(),
     );
@@ -47,6 +50,7 @@ class FoodItem {
         'category': category,
         'veg': veg,
         'available': available,
+        'isActive': isActive,
       };
 
   /// Normalize an image URL by properly encoding characters and validating it
@@ -66,6 +70,7 @@ class FoodItem {
     String? category,
     bool? veg,
     bool? available,
+    bool? isActive,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -78,6 +83,7 @@ class FoodItem {
       category: category ?? this.category,
       veg: veg ?? this.veg,
       available: available ?? this.available,
+      isActive: isActive ?? this.isActive,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
