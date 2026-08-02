@@ -1,7 +1,5 @@
 <div align="center">
 
-<img src="docs/images/logo.png" alt="Pawan Biryani Logo" width="140">
-
 # Pawan Biryani Food Delivery System
 
 ### Production-ready single-restaurant food ordering and management application
@@ -43,127 +41,6 @@ The system is designed for a single restaurant and supports real business operat
 | Public Menu API | [Menu API](https://pawan-backend-2.onrender.com/api/v1/menu) |
 
 > The Android application is distributed through Google Play testing tracks.
-
----
-
-## Application Screenshots
-
-Create this folder structure inside the repository:
-
-```text
-docs/
-└── images/
-    ├── logo.png
-    ├── home.png
-    ├── categories.png
-    ├── product-details.png
-    ├── cart.png
-    ├── checkout.png
-    ├── order-success.png
-    ├── order-history.png
-    ├── offline-state.png
-    ├── admin-login.png
-    ├── admin-dashboard.png
-    ├── admin-orders.png
-    ├── menu-management.png
-    └── restaurant-settings.png
-```
-
-### Customer Application
-
-<div align="center">
-
-<table>
-<tr>
-<td align="center">
-<img src="docs/images/home.png" width="220" alt="Customer Home Screen">
-<br>
-<b>Home Screen</b>
-</td>
-
-<td align="center">
-<img src="docs/images/categories.png" width="220" alt="Dynamic Categories">
-<br>
-<b>Dynamic Categories</b>
-</td>
-
-<td align="center">
-<img src="docs/images/product-details.png" width="220" alt="Product Details">
-<br>
-<b>Product Details</b>
-</td>
-</tr>
-
-<tr>
-<td align="center">
-<img src="docs/images/cart.png" width="220" alt="Shopping Cart">
-<br>
-<b>Shopping Cart</b>
-</td>
-
-<td align="center">
-<img src="docs/images/checkout.png" width="220" alt="Checkout Screen">
-<br>
-<b>Checkout</b>
-</td>
-
-<td align="center">
-<img src="docs/images/order-success.png" width="220" alt="Order Success">
-<br>
-<b>Order Confirmation</b>
-</td>
-</tr>
-</table>
-
-</div>
-
-### Admin Application
-
-<div align="center">
-
-<table>
-<tr>
-<td align="center">
-<img src="docs/images/admin-login.png" width="220" alt="Admin Login">
-<br>
-<b>Admin Login</b>
-</td>
-
-<td align="center">
-<img src="docs/images/admin-dashboard.png" width="220" alt="Admin Dashboard">
-<br>
-<b>Admin Dashboard</b>
-</td>
-
-<td align="center">
-<img src="docs/images/admin-orders.png" width="220" alt="Admin Orders">
-<br>
-<b>Order Management</b>
-</td>
-</tr>
-
-<tr>
-<td align="center">
-<img src="docs/images/menu-management.png" width="220" alt="Menu Management">
-<br>
-<b>Menu Management</b>
-</td>
-
-<td align="center">
-<img src="docs/images/restaurant-settings.png" width="220" alt="Restaurant Settings">
-<br>
-<b>Restaurant Settings</b>
-</td>
-
-<td align="center">
-<img src="docs/images/offline-state.png" width="220" alt="Restaurant Offline State">
-<br>
-<b>Offline State</b>
-</td>
-</tr>
-</table>
-
-</div>
 
 ---
 
@@ -482,17 +359,6 @@ FoodDelivery-System/
 │   │
 │   ├── package.json
 │   └── tsconfig.json
-│
-├── docs/
-│   └── images/
-│       ├── logo.png
-│       ├── home.png
-│       ├── categories.png
-│       ├── cart.png
-│       ├── checkout.png
-│       ├── admin-dashboard.png
-│       ├── admin-orders.png
-│       └── menu-management.png
 │
 ├── lib/
 │   ├── config/
