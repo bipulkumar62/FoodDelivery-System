@@ -1,6 +1,6 @@
 <div align="center">
 
-# Pawan Biryani Food Delivery System
+# Food Delivery System
 
 ### Production-ready single-restaurant food ordering and management application
 
