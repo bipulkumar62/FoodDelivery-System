@@ -21,7 +21,7 @@ Built with **Flutter, Riverpod, Node.js, Express, TypeScript, MongoDB Atlas, Sup
 
 ## Overview
 
-**Pawan Biryani Food Delivery System** is a full-stack restaurant ordering application developed for a real local restaurant.
+**This Food Delivery System** is a full-stack restaurant ordering application developed for a real local restaurant.
 
 Customers can browse categorized menu items, check item availability, add food to the cart, provide their delivery location and place Cash on Delivery orders.
 
