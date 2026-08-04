@@ -1,14 +1,24 @@
+import java.io.FileInputStream
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+val keystoreProperties = Properties()
+val keystorePropertiesFile = rootProject.file("key.properties")
+
+if (keystorePropertiesFile.exists()) {
+    FileInputStream(keystorePropertiesFile).use {
+        keystoreProperties.load(it)
+    }
+}
+
 android {
     namespace = "com.pawanbiryani.pawan_biryani"
 
-    // Flutter ke compatible SDK versions use karo.
-    
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -31,18 +41,29 @@ android {
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        create("release") {
+            keyAlias = keystoreProperties.getProperty("keyAlias")
+            keyPassword = keystoreProperties.getProperty("keyPassword")
+            storePassword = keystoreProperties.getProperty("storePassword")
+
+            val keystorePath = keystoreProperties.getProperty("storeFile")
+
+            if (keystorePath != null) {
+                storeFile = rootProject.file(keystorePath)
+            }
+        }
+    }
+
     packaging {
         jniLibs {
-            // Flutter ki native library ko dobara strip karne ki koshish mat karo.
             keepDebugSymbols += "**/libapp.so"
         }
     }
 
     buildTypes {
-        release {
-            // Testing ke liye temporary.
-            // Play Store upload se pehle proper release keystore use karna hoga.
-            signingConfig = signingConfigs.getByName("debug")
+        getByName("release") {
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 }
