@@ -17,9 +17,12 @@ Future<void> savePhoneNumber(String phone) async {
   await prefs.setString(_phoneKey, phone);
 }
 
-final ordersByPhoneProvider = FutureProvider<List<Order>>((ref) async {
-  final phone = await ref.watch(cachedPhoneProvider.future);
-  if (phone == null || phone.isEmpty) return [];
+/// Orders for a single customer phone. Keyed by phone and auto-disposed so
+/// one customer's order list is never cached globally or shown to another
+/// customer when the saved phone changes.
+final ordersForPhoneProvider =
+    FutureProvider.autoDispose.family<List<Order>, String>((ref, phone) async {
+  if (phone.trim().isEmpty) return [];
   return ref.read(orderRepositoryProvider).getOrdersByPhone(phone);
 });
 

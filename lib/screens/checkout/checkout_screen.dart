@@ -249,7 +249,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       ref.read(cartProvider.notifier).clearCart();
       await savePhoneNumber(_phoneController.text.trim());
       ref.invalidate(cachedPhoneProvider);
-      ref.invalidate(ordersByPhoneProvider);
+      ref.invalidate(ordersForPhoneProvider);
 
       if (mounted) {
         Navigator.pushNamedAndRemoveUntil(

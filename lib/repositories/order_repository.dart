@@ -39,7 +39,8 @@ class OrderRepository {
   }
 
   Future<List<Order>> getOrdersByPhone(String phone) async {
-    final json = await _client.get('/orders/phone/$phone');
+    final encoded = Uri.encodeComponent(phone);
+    final json = await _client.get('/orders/phone/$encoded');
     final List<dynamic> data = json is List ? json : (json['data'] as List<dynamic>? ?? []);
     return data.map((e) => Order.fromJson(e as Map<String, dynamic>)).toList();
   }

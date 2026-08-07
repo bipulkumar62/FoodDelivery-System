@@ -25,7 +25,7 @@ class MyOrdersScreen extends ConsumerWidget {
               title: 'No previous orders.',
             );
           }
-          return _OrdersBody();
+          return _OrdersBody(phone: phone);
         },
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (_, _) => const EmptyState(
@@ -38,7 +38,9 @@ class MyOrdersScreen extends ConsumerWidget {
 }
 
 class _OrdersBody extends ConsumerStatefulWidget {
-  const _OrdersBody();
+  final String phone;
+
+  const _OrdersBody({required this.phone});
 
   @override
   ConsumerState<_OrdersBody> createState() => _OrdersBodyState();
@@ -63,19 +65,19 @@ class _OrdersBodyState extends ConsumerState<_OrdersBody> {
     _socketService.connect();
     _socketService.onOrderStatusUpdate((data) {
       if (mounted) {
-        ref.invalidate(ordersByPhoneProvider);
+        ref.invalidate(ordersForPhoneProvider);
       }
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final ordersAsync = ref.watch(ordersByPhoneProvider);
+    final ordersAsync = ref.watch(ordersForPhoneProvider(widget.phone));
 
     return RefreshIndicator(
       onRefresh: () async {
-        ref.invalidate(ordersByPhoneProvider);
-        await ref.read(ordersByPhoneProvider.future);
+        ref.invalidate(ordersForPhoneProvider);
+        await ref.read(ordersForPhoneProvider(widget.phone).future);
       },
       child: ordersAsync.when(
         data: (orders) {
@@ -124,7 +126,7 @@ class _OrdersBodyState extends ConsumerState<_OrdersBody> {
                     ),
                     const SizedBox(height: 20),
                     ElevatedButton.icon(
-                      onPressed: () => ref.invalidate(ordersByPhoneProvider),
+                      onPressed: () => ref.invalidate(ordersForPhoneProvider),
                       icon: const Icon(Icons.refresh),
                       label: const Text('Retry'),
                     ),
