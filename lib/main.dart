@@ -4,7 +4,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'config/theme.dart';
 import 'models/food_item.dart';
 import 'network/api_client.dart';
-import 'services/location_service.dart';
 import 'screens/home/home_screen.dart';
 import 'screens/product_details/product_detail_screen.dart';
 import 'screens/cart/cart_screen.dart';
@@ -21,6 +20,7 @@ import 'screens/admin/edit_restaurant_menu_screen.dart';
 import 'screens/admin/restaurant_settings_screen.dart';
 import 'models/admin_menu_item.dart';
 import 'providers/settings_provider.dart';
+import 'screens/track_order/track_order_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -64,6 +64,14 @@ class PawanBiryaniApp extends StatelessWidget {
       case '/order-success':
         return MaterialPageRoute(
             builder: (_) => const OrderSuccessScreen());
+      case '/track-order':
+        final args = settings.arguments as Map<String, dynamic>;
+        return MaterialPageRoute(
+            builder: (_) => TrackOrderScreen(
+                  orderId: args['orderId'] as String,
+                  phone: args['phone'] as String,
+                  displayOrderId: args['displayOrderId'] as String?,
+                ));
       case '/my-orders':
         return MaterialPageRoute(builder: (_) => const MyOrdersScreen());
       case '/settings':
@@ -161,41 +169,6 @@ class _MainShellState extends ConsumerState<MainShell> {
   void initState() {
     super.initState();
     ref.read(restaurantSettingsProvider.notifier).refresh();
-    _requestLocationPermissionAtStart();
-  }
-
-  Future<void> _requestLocationPermissionAtStart() async {
-    final granted = await LocationService.requestPermission();
-    if (!mounted) return;
-    if (!granted) {
-      final permanentlyDenied = await LocationService.isPermissionPermanentlyDenied();
-      if (!mounted) return;
-      if (permanentlyDenied) {
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (ctx) => AlertDialog(
-            title: const Text('Location Permission Required'),
-            content: const Text(
-              'Location permission is required for delivery. Please enable it in app settings.',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(ctx).pop(),
-                child: const Text('OK'),
-              ),
-              TextButton(
-                onPressed: () {
-                  Navigator.of(ctx).pop();
-                  LocationService.openLocationSettings();
-                },
-                child: const Text('Open Settings'),
-              ),
-            ],
-          ),
-        );
-      }
-    }
   }
 
   @override

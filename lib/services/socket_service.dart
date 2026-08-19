@@ -124,5 +124,46 @@ class SocketService {
     _socket.off('order:status-update');
   }
 
+  /// Join the private room for one order, proving ownership with the phone
+  /// number stored on that order. Joining is idempotent.
+  void joinOrderRoom(String orderId, String phone) {
+    _socket.emit('tracking:join', {'orderId': orderId, 'phone': phone});
+  }
+
+  void leaveOrderRoom(String orderId) {
+    _socket.emit('tracking:leave', {'orderId': orderId});
+  }
+
+  /// Ask the server to authenticate this socket into the admin room so admin
+  /// screens receive new-order events (which are no longer broadcast to all
+  /// connected clients).
+  void adminAuth(String token) {
+    _socket.emit('admin:auth', {'token': token});
+  }
+
+  void onTrackingLocation(Function(dynamic) callback) {
+    _socket.on('tracking:location', callback);
+  }
+
+  void offTrackingLocation() {
+    _socket.off('tracking:location');
+  }
+
+  void onTrackingStopped(Function(dynamic) callback) {
+    _socket.on('tracking:stopped', callback);
+  }
+
+  void offTrackingStopped() {
+    _socket.off('tracking:stopped');
+  }
+
+  void onTrackingJoinError(Function(dynamic) callback) {
+    _socket.on('tracking:join-error', callback);
+  }
+
+  void offTrackingJoinError() {
+    _socket.off('tracking:join-error');
+  }
+
   bool get isConnected => _isConnected;
 }

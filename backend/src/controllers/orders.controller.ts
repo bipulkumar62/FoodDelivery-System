@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import * as orderService from '../services/order.service';
+import { emitNewOrder } from '../services/orderEvents';
 import { HTTP_STATUS } from '../constants';
 
 export async function createOrder(
@@ -21,10 +22,8 @@ export async function createOrder(
       longitude,
     });
 
-    // Emit socket event for new order
-    if (global.io) {
-      global.io.emit('order:new', order);
-    }
+    // Emit socket event for new order (admin room only, never globally)
+    emitNewOrder(order);
 
     res.status(HTTP_STATUS.CREATED).json({
       success: true,
@@ -112,14 +111,28 @@ export async function updateOrderStatus(
       req.body.status,
     );
 
-    // Emit socket event for status update
-    if (global.io) {
-      global.io.emit('order:status-update', order);
-    }
-
     res.status(HTTP_STATUS.OK).json({
       success: true,
       message: 'Order status updated successfully',
+      data: order,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function assignRiderToOrder(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const riderId = req.body.riderId ?? null;
+    const order = await orderService.assignRider(req.params.id, riderId);
+
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      message: riderId ? 'Rider assigned successfully' : 'Rider unassigned successfully',
       data: order,
     });
   } catch (error) {

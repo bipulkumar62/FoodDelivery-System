@@ -28,7 +28,8 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   final _addressController = TextEditingController();
   final _landmarkController = TextEditingController();
   bool _isPlacing = false;
-  bool _locationLoading = true;
+  // Location is only fetched when the customer taps "Use Current Location".
+  bool _locationLoading = false;
   bool _quoteLoading = false;
   String? _locationError;
   double? _latitude;
@@ -42,10 +43,12 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   @override
   void initState() {
     super.initState();
-    _initLocation();
   }
 
-  Future<void> _initLocation() async {
+  Future<void> _useCurrentLocation() async {
+    // Foreground-only, user-initiated location request: only happens when
+    // the customer taps "Use Current Location" while choosing a delivery
+    // address. No background collection, no app-start request.
     setState(() => _locationLoading = true);
     final hasPermission = await LocationService.requestPermission();
     if (!hasPermission) {
@@ -329,6 +332,18 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
               ],
             ),
           ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () {
+                setState(() => _locationError = null);
+                _useCurrentLocation();
+              },
+              icon: const Icon(Icons.my_location),
+              label: const Text('Try Again'),
+            ),
+          ),
           const SizedBox(height: 16),
         ],
       );
@@ -361,7 +376,31 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       );
     }
 
-    return const SizedBox.shrink();
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.primaryColor.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppTheme.primaryColor.withValues(alpha: 0.1)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.location_on_outlined, color: AppTheme.primaryColor),
+          const SizedBox(width: 12),
+          const Expanded(
+            child: Text(
+              'Use your current location to calculate the delivery charge.',
+              style: TextStyle(fontSize: 14, color: AppTheme.textPrimary),
+            ),
+          ),
+          TextButton.icon(
+            onPressed: _locationLoading ? null : _useCurrentLocation,
+            icon: const Icon(Icons.my_location),
+            label: const Text('Use Current Location'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override

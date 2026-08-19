@@ -35,6 +35,7 @@ export interface IOrder extends Document {
   updatedAt: Date;
   latitude?: number;
   longitude?: number;
+  riderId?: string | null;
 }
 
 const orderItemSchema = new Schema<IOrderItem>(
@@ -172,6 +173,10 @@ const orderSchema = new Schema<IOrder>(
     longitude: {
       type: Number,
     },
+    riderId: {
+      type: String,
+      default: null,
+    },
     completedAt: {
       type: Date,
       default: null,
@@ -184,6 +189,7 @@ const orderSchema = new Schema<IOrder>(
 
 orderSchema.index({ orderId: 1 }, { unique: true });
 orderSchema.index({ phone: 1 });
+orderSchema.index({ riderId: 1 });
 orderSchema.index({ orderStatus: 1 });
 orderSchema.index({ createdAt: -1 });
 

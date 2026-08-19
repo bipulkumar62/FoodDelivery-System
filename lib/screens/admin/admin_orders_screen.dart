@@ -18,6 +18,8 @@ class AdminOrdersScreen extends StatefulWidget {
 
 class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
   List<dynamic> _orders = [];
+  List<dynamic> _riders = [];
+  final Map<String, String?> _selectedRider = {};
   bool _loading = true;
   String? _error;
   Timer? _timer;
@@ -28,6 +30,7 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
   void initState() {
     super.initState();
     _fetchOrders();
+    _fetchRiders();
     _timer = Timer.periodic(const Duration(seconds: 5), (_) => _fetchOrders());
     _initSocket();
   }
@@ -35,6 +38,13 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
   void _initSocket() {
     AudioService().init();
     SocketService.instance.connect();
+    // Authenticate this socket into the admin room: order events are no
+    // longer broadcast to every connected client.
+    getAdminToken().then((token) {
+      if (token != null && token.isNotEmpty) {
+        SocketService.instance.adminAuth(token);
+      }
+    });
     SocketService.instance.onNewOrder((data) {
       if (mounted) {
         AudioService().playBeep();
@@ -121,6 +131,122 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
     pendingAdminRedirect = '/admin-orders';
     if (!mounted) return;
     Navigator.pushReplacementNamed(context, '/admin-login');
+  }
+
+  Future<void> _fetchRiders() async {
+    try {
+      final response = await ApiClient.instance.get('/admin/riders');
+      final List<dynamic> riders;
+      try {
+        riders = response is List
+            ? response
+            : (response['data'] as List<dynamic>? ?? []);
+      } catch (e) {
+        return;
+      }
+      if (!mounted) return;
+      setState(() => _riders = riders);
+    } catch (_) {
+      // Riders are optional for the UI; retry next screen open.
+    }
+  }
+
+  Future<void> _assignRider(String orderId, String? riderId) async {
+    try {
+      await ApiClient.instance.patch('/admin/orders/$orderId/rider', data: {
+        'riderId': riderId,
+      });
+      _fetchOrders();
+    } on ApiException catch (e) {
+      if (e.statusCode == 401 || e.statusCode == 403) {
+        await _redirectToLogin();
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.message)),
+        );
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _showAddRiderDialog() async {
+    final formKey = GlobalKey<FormState>();
+    final nameController = TextEditingController();
+    final mobileController = TextEditingController();
+    final passwordController = TextEditingController();
+
+    final created = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Add Rider'),
+        content: Form(
+          key: formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                controller: nameController,
+                decoration: const InputDecoration(labelText: 'Name'),
+                validator: (v) =>
+                    v == null || v.trim().isEmpty ? 'Name is required' : null,
+              ),
+              const SizedBox(height: 10),
+              TextFormField(
+                controller: mobileController,
+                decoration: const InputDecoration(labelText: 'Mobile (10 digits)'),
+                keyboardType: TextInputType.phone,
+                validator: (v) =>
+                    v == null || v.trim().length != 10 ? 'Enter a valid 10-digit mobile' : null,
+              ),
+              const SizedBox(height: 10),
+              TextFormField(
+                controller: passwordController,
+                decoration: const InputDecoration(labelText: 'Password'),
+                obscureText: true,
+                validator: (v) =>
+                    v == null || v.trim().length < 6 ? 'Min 6 characters' : null,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (formKey.currentState!.validate()) {
+                Navigator.of(ctx).pop(true);
+              }
+            },
+            child: const Text('Create'),
+          ),
+        ],
+      ),
+    );
+
+    if (created != true || !mounted) return;
+    try {
+      await ApiClient.instance.post('/admin/riders', data: {
+        'name': nameController.text.trim(),
+        'mobile': mobileController.text.trim(),
+        'password': passwordController.text,
+      });
+      await _fetchRiders();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Rider created. Share the credentials with the delivery partner.')),
+        );
+      }
+    } on ApiException catch (e) {
+      if (e.statusCode == 401 || e.statusCode == 403) {
+        await _redirectToLogin();
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.message)),
+        );
+      }
+    } catch (_) {}
   }
 
   Future<void> _updateStatus(String id, String status) async {
@@ -234,6 +360,53 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
     );
   }
 
+  Widget _buildRiderRow(dynamic order) {
+    final id = (order['_id'] as String?) ?? '';
+    final current = (order['riderId'] as String?) ?? '';
+    final selected = _selectedRider[id] ?? current;
+    return Row(
+      children: [
+        const Text(
+          'Rider: ',
+          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+        ),
+        Expanded(
+          child: DropdownButton<dynamic>(
+            value: selected.isEmpty ? '' : selected,
+            isExpanded: true,
+            hint: const Text('Unassigned'),
+            items: [
+              const DropdownMenuItem(value: '', child: Text('Unassigned')),
+              ..._riders.map(
+                (r) => DropdownMenuItem(
+                  value: r['id'] as String,
+                  child: Text(
+                    '${r['name']} (${r['mobile']})',
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ),
+            ],
+            onChanged: (v) => setState(() => _selectedRider[id] = v as String?),
+          ),
+        ),
+        const SizedBox(width: 8),
+        ElevatedButton(
+          onPressed: () {
+            final value = _selectedRider[id] ?? current;
+            _assignRider(id, value.isEmpty ? null : value);
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppTheme.primaryColor,
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+          ),
+          child: const Text('Assign', style: TextStyle(fontSize: 12)),
+        ),
+      ],
+    );
+  }
+
   Widget _buildStatusActions(dynamic order) {
     final status = (order['orderStatus'] as String?) ?? '';
     final id = (order['_id'] as String?) ?? '';
@@ -333,6 +506,11 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
       appBar: AppBar(
         title: const Text('Admin Orders'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.person_add_alt),
+            tooltip: 'Add Rider',
+            onPressed: _showAddRiderDialog,
+          ),
           IconButton(
             icon: const Icon(Icons.logout),
             tooltip: 'Logout',
@@ -507,6 +685,8 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
                               if (!['Delivered', 'Cancelled', 'Rejected'].contains(status)) ...[
                                 const SizedBox(height: 12),
                                 _buildStatusActions(order),
+                                const SizedBox(height: 12),
+                                _buildRiderRow(order),
                               ],
                             ],
                           ),

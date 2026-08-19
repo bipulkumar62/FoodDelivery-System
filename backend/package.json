@@ -7,6 +7,7 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "dev": "nodemon",
+    "test": "npm run build && node --test \"dist/test/*.test.js\"",
     "seed": "ts-node src/seeds/seed.ts",
     "seed:menu": "ts-node src/scripts/seedMenu.ts"
   },

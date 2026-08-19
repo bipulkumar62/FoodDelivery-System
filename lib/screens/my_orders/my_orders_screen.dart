@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import '../../models/order.dart';
 import '../../services/socket_service.dart';
 import '../../providers/order_provider.dart';
 import '../../widgets/order_status_chip.dart';
+import '../../widgets/rider_tracking_card.dart';
 import '../../widgets/empty_state.dart';
 import '../../config/theme.dart';
 import '../../utils/helpers.dart';
@@ -48,6 +50,7 @@ class _OrdersBody extends ConsumerStatefulWidget {
 
 class _OrdersBodyState extends ConsumerState<_OrdersBody> {
   final SocketService _socketService = SocketService.instance;
+  final Set<String> _joinedOrderRooms = {};
 
   @override
   void initState() {
@@ -57,6 +60,11 @@ class _OrdersBodyState extends ConsumerState<_OrdersBody> {
 
   @override
   void dispose() {
+    // Leave every joined order room: no listener survives the screen.
+    for (final id in _joinedOrderRooms) {
+      _socketService.leaveOrderRoom(id);
+    }
+    _joinedOrderRooms.clear();
     _socketService.offOrderStatusUpdate();
     super.dispose();
   }
@@ -70,6 +78,24 @@ class _OrdersBodyState extends ConsumerState<_OrdersBody> {
     });
   }
 
+  /// Order status updates are room-scoped on the server (they are no longer
+  /// broadcast to everybody), so the customer joins the private room of each
+  /// of their own orders, verified by phone number.
+  void _syncOrderRooms(List<Order> orders) {
+    final wanted = orders.map((o) => o.id).toSet();
+    final gone = _joinedOrderRooms.difference(wanted);
+    for (final id in gone) {
+      _socketService.leaveOrderRoom(id);
+      _joinedOrderRooms.remove(id);
+    }
+    for (final order in orders) {
+      if (!_joinedOrderRooms.contains(order.id)) {
+        _socketService.joinOrderRoom(order.id, order.phone);
+        _joinedOrderRooms.add(order.id);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final ordersAsync = ref.watch(ordersForPhoneProvider(widget.phone));
@@ -81,6 +107,7 @@ class _OrdersBodyState extends ConsumerState<_OrdersBody> {
       },
       child: ordersAsync.when(
         data: (orders) {
+          _syncOrderRooms(orders);
           if (orders.isEmpty) {
             return ListView(
               children: const [
@@ -141,10 +168,17 @@ class _OrdersBodyState extends ConsumerState<_OrdersBody> {
   }
 }
 
-class _OrderCard extends StatelessWidget {
-  final dynamic order;
+class _OrderCard extends ConsumerStatefulWidget {
+  final Order order;
 
   const _OrderCard({required this.order});
+
+  @override
+  ConsumerState<_OrderCard> createState() => _OrderCardState();
+}
+
+class _OrderCardState extends ConsumerState<_OrderCard> {
+  Order get order => widget.order;
 
   @override
   Widget build(BuildContext context) {
@@ -196,6 +230,7 @@ class _OrderCard extends StatelessWidget {
             _buildBillRow('Delivery', formatPrice(order.deliveryCharge)),
             const Divider(height: 12),
             _buildBillRow('TOTAL', formatPrice(order.total), isBold: true, isTotal: true),
+            RiderTrackingCard(order: order),
           ],
         ),
       ),

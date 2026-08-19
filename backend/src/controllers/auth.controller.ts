@@ -31,3 +31,38 @@ export async function login(req: Request, res: Response, next: NextFunction): Pr
     next(error);
   }
 }
+
+export async function riderLogin(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const { mobile, password } = req.body;
+
+    if (!mobile || !password) {
+      res.status(HTTP_STATUS.BAD_REQUEST).json({
+        success: false,
+        message: 'Mobile number and password are required',
+      });
+      return;
+    }
+
+    const { rider, token } = await authService.loginRider(mobile, password);
+
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      message: 'Rider login successful',
+      data: {
+        token,
+        rider: {
+          id: rider._id,
+          name: rider.name,
+          mobile: rider.mobile,
+        },
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+}

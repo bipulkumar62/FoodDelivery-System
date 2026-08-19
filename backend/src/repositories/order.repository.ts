@@ -64,4 +64,25 @@ export async function findOrderAndUpdateStatus(
   });
 }
 
+export async function findOrderAndSetRider(
+  id: string,
+  riderId: string | null,
+): Promise<IOrder | null> {
+  const query = mongoose.Types.ObjectId.isValid(id)
+    ? { _id: id }
+    : { orderId: id };
+  return Order.findOneAndUpdate(
+    query,
+    { $set: { riderId } },
+    { new: true, runValidators: true },
+  );
+}
+
+export async function clearRiderAssignment(id: string): Promise<void> {
+  const query = mongoose.Types.ObjectId.isValid(id)
+    ? { _id: id }
+    : { orderId: id };
+  await Order.updateOne(query, { $set: { riderId: null } });
+}
+
 

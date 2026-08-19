@@ -265,6 +265,78 @@ Cancelled
 
 ---
 
+## Live Delivery Tracking
+
+Customer-side live rider tracking with a Play Store policy-compliant location model.
+
+### How it works
+
+```mermaid
+sequenceDiagram
+    participant R as Rider App (future)
+    participant B as Backend
+    participant C as Customer App
+
+    Note over B: Order status = Out For Delivery + rider assigned
+    C->>B: GET /orders/tracking/:orderId (phone-verified, REST snapshot)
+    C->>B: Socket.IO join order:{orderId} (phone-verified)
+    R->>B: PUT /tracking/location (rider JWT only)
+    B-->>C: tracking:location event (room-scoped)
+    Note over C: Marker animates via lerp; stale > 45 s -> unavailable
+    C->>B: leave room / stop subscription when screen closes
+    Note over B: Delivered/Cancelled -> location deleted + tracking:stopped
+```
+
+### Tracking lifecycle
+
+- Tracking is available **only** while an order is `Out For Delivery` and a
+  rider is assigned. The backend re-validates on every location update.
+- The customer subscribes through a **private socket room** (`order:{orderId}`).
+  The customer's phone number is verified against the order before joining, so
+  a customer can never receive another order's location.
+- Each order stores **only its latest location** (no history). A MongoDB TTL
+  index (30 minutes) deletes stale entries as a failsafe, and the backend
+  explicitly deletes the record when the order is delivered, cancelled, or
+  unassigned.
+- The customer app stops tracking (leaves the room, disconnects listeners,
+  clears state) on delivered/cancelled status, when the screen closes, or when
+  the provider disposes.
+- If no location update arrives within 45 seconds the customer UI shows a
+  "temporarily unavailable" fallback; a REST snapshot refresh (every 15 s)
+  restores tracking automatically.
+
+### Location permissions (Play Store compliance)
+
+- The customer app **never declares `ACCESS_BACKGROUND_LOCATION`** and never
+  collects location in the background. The merged release manifest is
+  verified to contain only `ACCESS_FINE_LOCATION` and `ACCESS_COARSE_LOCATION`.
+- The customer's location is captured **only in the foreground, only when the
+  user taps "Use Current Location"** during checkout.
+- No app-start location request; no WorkManager/JobScheduler/AlarmManager/
+  boot receivers anywhere in the app.
+
+### Rider app — integration contract (remaining work)
+
+There is **no rider app in this repository yet**. The backend contract is
+implemented and tested; the rider-side foreground service must be built in a
+separate app:
+
+| Contract item | Status |
+|---|---|
+| `POST /auth/rider/login`, `GET /admin/riders`, `POST /admin/riders` | Backend done |
+| `PUT /tracking/location` (rider JWT, re-validates order/rider/status) | Backend done |
+| Live location stored per order, TTL failsafe, auto-stop on terminal status | Backend done |
+| Rider foreground service (`android:foregroundServiceType="location"`, notification like "Pawan Biryani is sharing your location for active order #ORDER_ID") | Rider app required |
+| Rider permission disclosure flow (foreground-only, explained in-app) | Rider app required |
+| Rider app pings every 10–15 s / 25 m distance threshold | Rider app required |
+
+The customer app and backend already handle "rider ended tracking" and
+"rider unassigned" as clean stop signals — they only need the rider app to
+call `POST /tracking/stop` (or just stop pinging; the backend auto-stops on
+terminal status and TTL).
+
+---
+
 ## System Architecture
 
 ```mermaid
@@ -748,8 +820,7 @@ Benefits:
 
 - Online payment integration
 - Push notifications
-- Live delivery tracking
-- Separate delivery-partner application
+- Separate delivery-partner application (rider foreground service, see Live Delivery Tracking)
 - Restaurant analytics dashboard
 - Coupon and promotion system
 - Customer authentication
@@ -758,7 +829,6 @@ Benefits:
 - Automated invoice generation
 - Advanced sales reports
 - Redis caching
-- Automated backend tests
 - CI/CD pipeline
 - Crash reporting
 - Performance monitoring

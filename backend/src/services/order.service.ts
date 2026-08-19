@@ -4,8 +4,12 @@ import { IOrderItem, IOrderResponse } from '../interfaces/order.interface';
 import { AppError } from '../utils/AppError';
 import { HTTP_STATUS } from '../constants';
 import * as orderRepo from '../repositories/order.repository';
+import * as riderRepo from '../repositories/rider.repository';
 import { IOrder } from '../models/Order';
 import { getSettingsOrCreate } from './restaurantSettings.service';
+import { emitOrderStatusUpdate, notifyOrderTerminal } from './orderEvents';
+import { trackingService } from './tracking.instance';
+import { isTerminalOrderStatus } from '../utils/trackingPolicy';
 import {
   RESTAURANT_LATITUDE,
   RESTAURANT_LONGITUDE,
@@ -247,7 +251,63 @@ export async function updateOrderStatus(
     throw new AppError('Order not found', HTTP_STATUS.NOT_FOUND);
   }
 
-  return formatOrderResponse(updatedOrder);
+  // Terminal status: end any live tracking, remove the live-location record,
+  // notify the customer room, and release the assigned rider.
+  if (isTerminalOrderStatus(newStatus)) {
+    await orderRepo.clearRiderAssignment(id);
+    await notifyOrderTerminal(updatedOrder);
+  }
+
+  const response = formatOrderResponse(updatedOrder);
+  emitOrderStatusUpdate(response);
+  return response;
+}
+
+/**
+ * Assign (or unassign, riderId = null) a rider to an order.
+ * Unassigning an out-for-delivery order stops live tracking immediately.
+ */
+export async function assignRider(
+  id: string,
+  riderId: string | null,
+): Promise<IOrderResponse> {
+  const currentOrder = await orderRepo.findOrderById(id);
+  if (!currentOrder) {
+    throw new AppError('Order not found', HTTP_STATUS.NOT_FOUND);
+  }
+
+  if (riderId) {
+    const rider = await riderRepo.findRiderById(riderId);
+    if (!rider) {
+      throw new AppError('Rider not found', HTTP_STATUS.NOT_FOUND);
+    }
+    if (!rider.isActive) {
+      throw new AppError('Rider account is disabled', HTTP_STATUS.BAD_REQUEST);
+    }
+  }
+
+  if (
+    riderId === null &&
+    currentOrder.riderId != null &&
+    isTerminalOrderStatus(currentOrder.orderStatus)
+  ) {
+    // Already terminal: nothing to stop, just clear the assignment.
+  } else if (
+    riderId === null &&
+    currentOrder.riderId != null &&
+    !isTerminalOrderStatus(currentOrder.orderStatus)
+  ) {
+    await trackingService.stopTracking(id, 'rider_unassigned');
+  }
+
+  const updatedOrder = await orderRepo.findOrderAndSetRider(id, riderId);
+  if (!updatedOrder) {
+    throw new AppError('Order not found', HTTP_STATUS.NOT_FOUND);
+  }
+
+  const response = formatOrderResponse(updatedOrder);
+  emitOrderStatusUpdate(response);
+  return response;
 }
 
 function formatOrderResponse(order: IOrder): IOrderResponse {
@@ -283,5 +343,6 @@ function formatOrderResponse(order: IOrder): IOrderResponse {
     updatedAt: order.updatedAt,
     latitude: order.latitude,
     longitude: order.longitude,
+    riderId: order.riderId ?? null,
   };
 }

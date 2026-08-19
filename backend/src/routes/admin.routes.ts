@@ -8,6 +8,9 @@ import {
   updateMenuItem,
   updateMenuItemAvailability,
   deleteMenuItem,
+  assignRiderToOrder,
+  getRiders,
+  createRider,
 } from '../controllers/admin.controller';
 import * as revenueController from '../controllers/revenue.controller';
 import { authenticate } from '../middlewares/auth';
@@ -41,6 +44,43 @@ router.patch(
   ],
   validate,
   updateOrderStatus,
+);
+
+router.patch(
+  '/orders/:id/rider',
+  [
+    param('id').isMongoId().withMessage('Invalid order ID'),
+    body('riderId')
+      .optional({ nullable: true })
+      .isString()
+      .withMessage('riderId must be a string'),
+  ],
+  validate,
+  assignRiderToOrder,
+);
+
+// Riders
+router.get('/riders', getRiders);
+
+router.post(
+  '/riders',
+  [
+    body('name')
+      .isString()
+      .trim()
+      .notEmpty()
+      .withMessage('Rider name is required'),
+    body('mobile')
+      .isString()
+      .isLength({ min: 10, max: 10 })
+      .withMessage('Valid 10-digit mobile is required'),
+    body('password')
+      .isString()
+      .isLength({ min: 6 })
+      .withMessage('Password must be at least 6 characters'),
+  ],
+  validate,
+  createRider,
 );
 
 // Menu

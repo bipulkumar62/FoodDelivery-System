@@ -37,6 +37,7 @@ export interface IOrderResponse {
   updatedAt: Date;
   latitude?: number;
   longitude?: number;
+  riderId?: string | null;
 }
 
 export interface PaginatedResult<T> {
