@@ -1,21 +1,6 @@
-<div align="center">
-
-# Food Delivery System
-
-### Production-ready single-restaurant food ordering and management application
+# Production-ready Single-Restaurant Food Ordering and Management Application
 
 Built with **Flutter, Riverpod, Node.js, Express, TypeScript, MongoDB Atlas, Supabase Storage and Render**.
-
-[![Flutter](https://img.shields.io/badge/Flutter-Mobile_App-02569B?logo=flutter&logoColor=white)](https://flutter.dev/)
-[![Dart](https://img.shields.io/badge/Dart-Language-0175C2?logo=dart&logoColor=white)](https://dart.dev/)
-[![Node.js](https://img.shields.io/badge/Node.js-Backend-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
-[![Express](https://img.shields.io/badge/Express-REST_API-000000?logo=express&logoColor=white)](https://expressjs.com/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-Backend-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![MongoDB](https://img.shields.io/badge/MongoDB-Database-47A248?logo=mongodb&logoColor=white)](https://www.mongodb.com/)
-[![Supabase](https://img.shields.io/badge/Supabase-Storage-3FCF8E?logo=supabase&logoColor=white)](https://supabase.com/)
-[![Render](https://img.shields.io/badge/Render-Deployment-46E3B7?logo=render&logoColor=white)](https://render.com/)
-
-</div>
 
 ---
 
@@ -34,7 +19,7 @@ The system is designed for a single restaurant and supports real business operat
 ## Live Project
 
 | Resource | Link |
-|---|---|
+| --- | --- |
 | GitHub Repository | [FoodDelivery-System](https://github.com/bipulkumar62/FoodDelivery-System) |
 | Backend API | [pawan-backend-2.onrender.com](https://pawan-backend-2.onrender.com/) |
 | Health Check | [Backend Health](https://pawan-backend-2.onrender.com/health) |
@@ -171,8 +156,8 @@ Customer Home updates automatically
 
 The system separates item visibility from item availability.
 
-| isActive | available | Customer Result |
-|---|---|---|
+| `isActive` | `available` | Customer result |
+| --- | --- | --- |
 | `true` | `true` | Item is visible and orderable |
 | `true` | `false` | Item is visible with SOLD OUT status |
 | `false` | `false` | Item is archived and hidden |
@@ -240,17 +225,6 @@ The backend validates restaurant availability, item availability and delivery el
 
 ## Order Status Flow
 
-```mermaid
-flowchart LR
-    A[Pending] --> B[Accepted]
-    B --> C[Preparing]
-    C --> D[Out For Delivery]
-    D --> E[Delivered]
-
-    A --> F[Rejected]
-    A --> G[Cancelled]
-```
-
 Supported statuses:
 
 ```text
@@ -269,7 +243,7 @@ Cancelled
 
 Customer-side live rider tracking with a Play Store policy-compliant location model.
 
-### How it works
+### How It Works
 
 ```mermaid
 sequenceDiagram
@@ -277,89 +251,93 @@ sequenceDiagram
     participant B as Backend
     participant C as Customer App
 
-    Note over B: Order status = Out For Delivery + rider assigned
-    C->>B: GET /orders/tracking/:orderId (phone-verified, REST snapshot)
-    C->>B: Socket.IO join order:{orderId} (phone-verified)
-    R->>B: PUT /tracking/location (rider JWT only)
-    B-->>C: tracking:location event (room-scoped)
-    Note over C: Marker animates via lerp; stale > 45 s -> unavailable
-    C->>B: leave room / stop subscription when screen closes
-    Note over B: Delivered/Cancelled -> location deleted + tracking:stopped
+    Note over B: Order is out for delivery and a rider is assigned
+    C->>B: Request phone-verified tracking snapshot
+    C->>B: Join the private order tracking room
+    R->>B: Send rider-authenticated location update
+    B-->>C: Send room-scoped location event
+    Note over C: Marker animates and becomes unavailable after 45 seconds
+    C->>B: Leave room when the tracking screen closes
+    Note over B: Delete location after delivery or cancellation
 ```
 
-### Tracking lifecycle
+### Tracking Lifecycle
 
-- Tracking is available **only** while an order is `Out For Delivery` and a
-  rider is assigned. The backend re-validates on every location update.
-- The customer subscribes through a **private socket room** (`order:{orderId}`).
-  The customer's phone number is verified against the order before joining, so
-  a customer can never receive another order's location.
-- Each order stores **only its latest location** (no history). A MongoDB TTL
-  index (30 minutes) deletes stale entries as a failsafe, and the backend
-  explicitly deletes the record when the order is delivered, cancelled, or
-  unassigned.
-- The customer app stops tracking (leaves the room, disconnects listeners,
-  clears state) on delivered/cancelled status, when the screen closes, or when
-  the provider disposes.
-- If no location update arrives within 45 seconds the customer UI shows a
-  "temporarily unavailable" fallback; a REST snapshot refresh (every 15 s)
-  restores tracking automatically.
+- Tracking is available **only** while an order is `Out For Delivery` and a rider is assigned.
+- The backend re-validates every location update.
+- The customer subscribes through a **private socket room** named `order:{orderId}`.
+- The customer's phone number is verified against the order before joining.
+- A customer cannot receive another order's location.
+- Each order stores **only its latest location** and no location history.
+- A MongoDB TTL index deletes stale entries after 30 minutes as a failsafe.
+- The backend explicitly deletes the location when an order is delivered, cancelled or unassigned.
+- The customer app leaves the room, disconnects listeners and clears tracking state when the screen closes.
+- Tracking also stops when the order is delivered or cancelled.
+- If no update arrives within 45 seconds, the customer UI displays a temporarily unavailable message.
+- A REST snapshot refresh every 15 seconds restores tracking when updates resume.
 
-### Location permissions (Play Store compliance)
+### Location Permissions and Play Store Compliance
 
-- The customer app **never declares `ACCESS_BACKGROUND_LOCATION`** and never
-  collects location in the background. The merged release manifest is
-  verified to contain only `ACCESS_FINE_LOCATION` and `ACCESS_COARSE_LOCATION`.
-- The customer's location is captured **only in the foreground, only when the
-  user taps "Use Current Location"** during checkout.
-- No app-start location request; no WorkManager/JobScheduler/AlarmManager/
-  boot receivers anywhere in the app.
+- The customer app **never declares `ACCESS_BACKGROUND_LOCATION`**.
+- The customer app never collects customer location in the background.
+- The merged release manifest contains only `ACCESS_FINE_LOCATION` and `ACCESS_COARSE_LOCATION`.
+- Customer location is captured **only in the foreground**.
+- Location is requested only when the user taps **Use Current Location** during checkout.
+- The location is used to confirm the delivery address and validate the 15-kilometre delivery radius.
+- The app does not request location when it starts.
+- The app does not use WorkManager, JobScheduler, AlarmManager or boot receivers for customer location.
 
-### Rider app — integration contract (remaining work)
+### Rider App Integration Contract
 
-There is **no rider app in this repository yet**. The backend contract is
-implemented and tested; the rider-side foreground service must be built in a
-separate app:
+There is **no rider app in this repository yet**.
+
+The backend tracking contract is implemented and tested. The rider-side foreground service must be built in a separate application.
 
 | Contract item | Status |
-|---|---|
-| `POST /auth/rider/login`, `GET /admin/riders`, `POST /admin/riders` | Backend done |
-| `PUT /tracking/location` (rider JWT, re-validates order/rider/status) | Backend done |
-| Live location stored per order, TTL failsafe, auto-stop on terminal status | Backend done |
-| Rider foreground service (`android:foregroundServiceType="location"`, notification like "Pawan Biryani is sharing your location for active order #ORDER_ID") | Rider app required |
-| Rider permission disclosure flow (foreground-only, explained in-app) | Rider app required |
-| Rider app pings every 10–15 s / 25 m distance threshold | Rider app required |
+| --- | --- |
+| `POST /auth/rider/login` | Backend done |
+| `GET /admin/riders` | Backend done |
+| `POST /admin/riders` | Backend done |
+| `PUT /tracking/location` with rider JWT validation | Backend done |
+| Re-validation of order, rider and status | Backend done |
+| Latest location stored per order | Backend done |
+| TTL failsafe and terminal-status cleanup | Backend done |
+| Rider foreground location service | Rider app required |
+| Rider permission disclosure flow | Rider app required |
+| Location updates every 10–15 seconds or 25 metres | Rider app required |
 
-The customer app and backend already handle "rider ended tracking" and
-"rider unassigned" as clean stop signals — they only need the rider app to
-call `POST /tracking/stop` (or just stop pinging; the backend auto-stops on
-terminal status and TTL).
+The future rider foreground service should use:
+
+```xml
+android:foregroundServiceType="location"
+```
+
+Its persistent notification should clearly explain the tracking operation, for example:
+
+```text
+Pawan Biryani is sharing your location for active order #ORDER_ID
+```
+
+The customer app and backend already handle rider-ended tracking and rider-unassigned events as clean stop signals.
+
+The rider app may call:
+
+```text
+POST /tracking/stop
+```
+
+If the rider app stops sending updates, the backend also stops tracking after terminal order status or TTL expiry.
 
 ---
 
 ## System Architecture
 
 ```mermaid
-flowchart TD
-    Customer[Flutter Customer App]
-    Admin[Flutter Admin Interface]
-
-    API[Node.js and Express REST API]
-    Auth[JWT Authentication]
-    Database[(MongoDB Atlas)]
-    Storage[Supabase Storage]
-    Maps[Google Maps]
-    Hosting[Render]
-
-    Customer --> API
-    Admin --> API
-
-    API --> Auth
-    API --> Database
-    Admin --> Storage
-    Customer --> Storage
-    Admin --> Maps
-    API --> Hosting
+flowchart LR
+    C[Customer App] --> API[Node.js and Express API]
+    A[Admin App] --> API
+    API --> DB[(MongoDB Atlas)]
+    API --> S[Supabase Storage]
 ```
 
 ---
@@ -369,7 +347,7 @@ flowchart TD
 ### Mobile Application
 
 | Technology | Purpose |
-|---|---|
+| --- | --- |
 | Flutter | Cross-platform application |
 | Dart | Programming language |
 | Riverpod | State management |
@@ -382,7 +360,7 @@ flowchart TD
 ### Backend
 
 | Technology | Purpose |
-|---|---|
+| --- | --- |
 | Node.js | Backend runtime |
 | Express.js | REST API framework |
 | TypeScript | Type-safe backend development |
@@ -397,7 +375,7 @@ flowchart TD
 ### Infrastructure
 
 | Service | Purpose |
-|---|---|
+| --- | --- |
 | Render | Backend deployment |
 | MongoDB Atlas | Production database |
 | Supabase Storage | Menu image storage |
@@ -472,26 +450,26 @@ https://pawan-backend-2.onrender.com/api/v1
 ### Health
 
 | Method | Endpoint | Description |
-|---|---|---|
+| --- | --- | --- |
 | GET | `/` | Backend status |
 | GET | `/health` | Backend health and uptime |
 
 ### Authentication
 
 | Method | Endpoint | Description |
-|---|---|---|
+| --- | --- | --- |
 | POST | `/auth/login` | Admin authentication |
 
 ### Public Menu
 
 | Method | Endpoint | Description |
-|---|---|---|
+| --- | --- | --- |
 | GET | `/menu` | Get active public menu |
 
 ### Admin Menu
 
 | Method | Endpoint | Description |
-|---|---|---|
+| --- | --- | --- |
 | GET | `/admin/menu` | Get admin menu |
 | POST | `/admin/menu` | Add a menu item |
 | PATCH | `/admin/menu/:id` | Update a menu item |
@@ -501,7 +479,7 @@ https://pawan-backend-2.onrender.com/api/v1
 ### Orders
 
 | Method | Endpoint | Description |
-|---|---|---|
+| --- | --- | --- |
 | POST | `/orders` | Place an order |
 | GET | `/orders/:id` | Get order by ID |
 | GET | `/orders/phone/:phone` | Get customer order history |
@@ -511,7 +489,7 @@ https://pawan-backend-2.onrender.com/api/v1
 ### Restaurant Settings
 
 | Method | Endpoint | Description |
-|---|---|---|
+| --- | --- | --- |
 | GET | `/restaurant/settings` | Get public restaurant settings |
 | PATCH | `/admin/restaurant/settings` | Update restaurant settings |
 
@@ -589,13 +567,13 @@ Build TypeScript:
 npm run build
 ```
 
-Run development server:
+Run the development server:
 
 ```bash
 npm run dev
 ```
 
-Run production server:
+Run the production server:
 
 ```bash
 npm start
@@ -659,49 +637,49 @@ npm run build
 
 ### Customer Application
 
-- [ ] Home menu loads successfully
-- [ ] Dynamic categories appear correctly
-- [ ] Category filtering works
-- [ ] Available products can be added to the cart
-- [ ] Sold-out items remain visible
-- [ ] Sold-out items cannot be ordered
-- [ ] Archived products remain hidden
-- [ ] Menu images load correctly
-- [ ] Cart totals are correct
-- [ ] Delivery charge is correct
-- [ ] Location permission works
-- [ ] 15-kilometre restriction works
-- [ ] Checkout works
-- [ ] Order placement works
-- [ ] Order history loads correctly
-- [ ] Offline mode blocks ordering
+- Home menu loads successfully
+- Dynamic categories appear correctly
+- Category filtering works
+- Available products can be added to the cart
+- Sold-out items remain visible
+- Sold-out items cannot be ordered
+- Archived products remain hidden
+- Menu images load correctly
+- Cart totals are correct
+- Delivery charge is correct
+- Location permission works
+- 15-kilometre restriction works
+- Checkout works
+- Order placement works
+- Order history loads correctly
+- Offline mode blocks ordering
 
 ### Admin Application
 
-- [ ] Admin login works
-- [ ] Orders load successfully
-- [ ] Order status updates work
-- [ ] Track Customer opens Google Maps
-- [ ] Daily revenue is correct
-- [ ] Add Menu Item works
-- [ ] Edit Menu Item works
-- [ ] Image upload works
-- [ ] Dynamic category sync works
-- [ ] Sold Out toggle works
-- [ ] Archive action works
-- [ ] Restaurant availability controls work
+- Admin login works
+- Orders load successfully
+- Order status updates work
+- Track Customer opens Google Maps
+- Daily revenue is correct
+- Add Menu Item works
+- Edit Menu Item works
+- Image upload works
+- Dynamic category synchronization works
+- Sold Out toggle works
+- Archive action works
+- Restaurant availability controls work
 
 ### Backend
 
-- [ ] TypeScript build succeeds
-- [ ] Admin endpoints require authentication
-- [ ] Sold-out items cannot be ordered
-- [ ] Archived items cannot be ordered
-- [ ] Restaurant offline mode rejects orders
-- [ ] Public API returns active menu items
-- [ ] Duplicate order protection works
-- [ ] TTL cleanup remains enabled
-- [ ] No sensitive credentials are committed
+- TypeScript build succeeds
+- Admin endpoints require authentication
+- Sold-out items cannot be ordered
+- Archived items cannot be ordered
+- Restaurant offline mode rejects orders
+- Public API returns active menu items
+- Duplicate order protection works
+- TTL cleanup remains enabled
+- No sensitive credentials are committed
 
 ---
 
@@ -820,7 +798,8 @@ Benefits:
 
 - Online payment integration
 - Push notifications
-- Separate delivery-partner application (rider foreground service, see Live Delivery Tracking)
+- Separate delivery-partner application
+- Rider foreground location service
 - Restaurant analytics dashboard
 - Coupon and promotion system
 - Customer authentication
@@ -837,17 +816,9 @@ Benefits:
 
 ## Developer
 
-<div align="center">
-
 ### Bipul Kumar
 
 B.Tech Computer Science Engineering student focused on building production-grade software, AI-powered applications and real-world business systems.
-
-[![GitHub](https://img.shields.io/badge/GitHub-bipulkumar62-181717?logo=github&logoColor=white)](https://github.com/bipulkumar62)
-
-[![Instagram](https://img.shields.io/badge/Instagram-aiby__yash__-E4405F?logo=instagram&logoColor=white)](https://www.instagram.com/aiby_yash_/)
-
-</div>
 
 ---
 
@@ -855,26 +826,26 @@ B.Tech Computer Science Engineering student focused on building production-grade
 
 Contributions, suggestions and issue reports are welcome.
 
-1. Fork the repository
-2. Create a new feature branch
+1. Fork the repository.
+2. Create a new feature branch:
 
 ```bash
 git checkout -b feature/your-feature
 ```
 
-3. Commit your changes
+3. Commit your changes:
 
 ```bash
 git commit -m "Add your feature"
 ```
 
-4. Push your branch
+4. Push your branch:
 
 ```bash
 git push origin feature/your-feature
 ```
 
-5. Open a Pull Request
+5. Open a pull request.
 
 ---
 
@@ -886,10 +857,6 @@ Add a dedicated `LICENSE` file before allowing public commercial reuse.
 
 ---
 
-<div align="center">
-
-### Built with Flutter, Node.js and MongoDB for a real restaurant business.
+### Built with Flutter, Node.js and MongoDB for a Real Restaurant Business
 
 ⭐ Star the repository if you find this project useful.
-
-</div>
