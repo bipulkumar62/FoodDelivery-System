@@ -25,8 +25,6 @@ The system is designed for a single restaurant and supports real business operat
 | Health Check | [Backend Health](https://pawan-backend-2.onrender.com/health) |
 | Public Menu API | [Menu API](https://pawan-backend-2.onrender.com/api/v1/menu) |
 
-> The Android application is distributed through Google Play testing tracks.
-
 ---
 
 ## Core Features
