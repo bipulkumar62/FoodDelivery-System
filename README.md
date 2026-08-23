@@ -1,4 +1,4 @@
-# Production-ready Single-Restaurant Food Ordering and Management Application
+# Production-ready Single Restaurant Food Ordering and Management Application
 
 Built with **Flutter, Riverpod, Node.js, Express, TypeScript, MongoDB Atlas, Supabase Storage and Render**.
 
