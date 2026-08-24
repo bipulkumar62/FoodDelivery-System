@@ -1,18 +1,28 @@
-# Production-ready Single Restaurant Food Ordering and Management Application
+# Production-Ready Single-Restaurant Food Ordering & Management System
 
-Built with **Flutter, Riverpod, Node.js, Express, TypeScript, MongoDB Atlas, Supabase Storage and Render**.
+[![Flutter](https://img.shields.io/badge/Flutter-02569B?style=for-the-badge\&logo=flutter\&logoColor=white)](https://flutter.dev)
+[![Riverpod](https://img.shields.io/badge/Riverpod-2D6DB5?style=for-the-badge\&logo=dart\&logoColor=white)](https://riverpod.dev)
+[![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge\&logo=nodedotjs\&logoColor=white)](https://nodejs.org)
+[![Express.js](https://img.shields.io/badge/Express.js-000000?style=for-the-badge\&logo=express\&logoColor=white)](https://expressjs.com)
+[![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge\&logo=typescript\&logoColor=white)](https://www.typescriptlang.org)
+[![MongoDB](https://img.shields.io/badge/MongoDB_Atlas-47A248?style=for-the-badge\&logo=mongodb\&logoColor=white)](https://www.mongodb.com/atlas)
+[![Supabase](https://img.shields.io/badge/Supabase_Storage-3FCF8E?style=for-the-badge\&logo=supabase\&logoColor=white)](https://supabase.com)
+[![Render](https://img.shields.io/badge/Deployed_on_Render-46E3B7?style=for-the-badge\&logo=render\&logoColor=black)](https://render.com)
+[![Google Play](https://img.shields.io/badge/Available_on_Google_Play-414141?style=for-the-badge\&logo=googleplay\&logoColor=white)](https://play.google.com/store/apps/details?id=com.pawanbiryani.pawan_biryani)
+
+Built with **Flutter, Riverpod, Node.js, Express, TypeScript, MongoDB Atlas, Supabase Storage, and Render**.
 
 ---
 
 ## Overview
 
-**This Food Delivery System** is a full-stack restaurant ordering application developed for a real local restaurant.
+**Food Delivery System** is a full-stack ordering and restaurant-management application built and deployed for a real local restaurant.
 
-Customers can browse categorized menu items, check item availability, add food to the cart, provide their delivery location and place Cash on Delivery orders.
+Customers can browse categorized menu items, check live availability, manage their cart, provide a delivery address or foreground location, and place secure **Cash on Delivery** orders.
 
-Restaurant administrators can manage menu items, upload food images, create categories, control restaurant availability, view incoming orders, update order statuses, track customer locations and monitor revenue.
+Authorized restaurant administrators can manage categories and menu items, upload food images, control restaurant availability, process incoming orders, update order statuses, open active delivery locations in Google Maps, and monitor revenue through an operational dashboard.
 
-The system is designed for a single restaurant and supports real business operations.
+The system is purpose-built for a **single restaurant** and supports real-world ordering and day-to-day restaurant operations.
 
 ---
 
