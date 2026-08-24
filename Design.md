@@ -1,8 +1,8 @@
-Food Delivery System
+Food Delivery System — Production Design
 
-Technical design for a food ordering and delivery application. Pawan Biryani is used as the example restaurant/brand; the product and repository name remain Food Delivery System.
+Reference implementation: Pawan Biryani, a single-restaurant food-ordering system serving customers within 15 km.
 
-Document status
+Document control
 
 Field
 
@@ -10,804 +10,869 @@ Value
 
 Status
 
-Proposed reference design
+Production-hardening specification
 
-Scope
+Product
 
-Single-brand, one or more restaurant branches
+Food Delivery System
 
-Primary users
+Reference brand
 
-Customer, restaurant staff, delivery partner, administrator
+Pawan Biryani
+
+Last updated
+
+24 August 2026
+
+Current client
+
+Flutter Android application
+
+Current backend
+
+Node.js, Express, TypeScript, MongoDB/Mongoose
+
+Current hosting
+
+Render and MongoDB Atlas
+
+Payment method
+
+Cash on Delivery (COD) only
+
+Service area
+
+Maximum 15 km from the restaurant
 
 Architecture
 
-Modular monolith with asynchronous workers
+Modular monolith
 
-Source-code basis
+This document separates verified/current product constraints from target hardening work. A capability is not production-ready merely because it appears in this document; the release checklist in Definition of done must pass.
 
-No implementation was provided; this document defines intended behavior, not verified current behavior
+1. Purpose and scope
 
-1. Purpose
-
-The Food Delivery System lets customers browse a branch-specific menu, place and pay for orders, follow fulfillment and delivery, and report problems. Restaurant staff manage availability and prepare orders. Delivery partners accept assigned deliveries and update their progress. Administrators manage branches, menus, promotions, users, refunds, and operational reporting.
+The system lets a customer browse the menu, provide contact and delivery details, verify that the address is serviceable, place a COD order, and follow its status. Authorized restaurant staff accept, reject, prepare, dispatch, cancel, and complete orders.
 
 Goals
 
-Show only items that the selected branch can currently fulfill.
+Server-authoritative pricing, serviceability, permissions, and order transitions.
 
-Calculate totals consistently on the server.
+No duplicate order from retries, double taps, or a lost response.
 
-Prevent duplicate orders and duplicate payment capture.
+A customer can access only orders that belong to the same verified identity.
 
-Give every participant a reliable view of order status.
+Restaurant staff can access operational data only after authentication.
 
-Preserve an auditable history of price, status, payment, and refund changes.
+Location is collected only when required and is not exposed after delivery.
 
-Degrade safely when payment, maps, messaging, or other external providers fail.
+Order creation remains correct during concurrent requests and partial failures.
 
-Support multiple branches without introducing distributed-system complexity too early.
+Fast menu and order reads without treating a cache as the source of truth.
 
-Non-goals for the first release
+Auditable operational history for support, debugging, and reconciliation.
 
-A marketplace containing unrelated restaurants.
+Non-goals for the current release
 
-Split orders across multiple branches.
+Marketplace support for unrelated restaurants.
 
-Multi-currency checkout.
+Multiple restaurant branches.
 
-Scheduled or subscription orders.
+Online payment capture and refunds.
 
-Automated route optimization across multiple simultaneous deliveries.
+A standalone delivery-partner application.
 
-Microservices deployed and scaled independently.
+Continuous background customer location.
 
-2. Roles and permissions
+Live rider GPS tracking.
 
-Role
+Scheduled orders, subscriptions, or multi-currency checkout.
 
-Main capabilities
+Microservices.
 
-Important restrictions
+Truthfulness rule
 
-Customer
+README files, diagrams, resumes, and portfolio posts must describe the deployed behavior. Planned features must be labeled Planned and must not be presented as implemented.
 
-Manage addresses, browse menu, manage cart, order, pay, track, cancel when permitted, request support
+2. Product rules
 
-Can access only their own profile, orders, and payment references
+Rule
 
-Restaurant staff
+Required behavior
 
-Accept or reject orders, update preparation state, mark items unavailable
+Service radius
 
-Limited to assigned branches; cannot view raw payment credentials
+Reject delivery addresses more than 15 km from the configured restaurant coordinates.
 
-Delivery partner
+Location permission
 
-View assigned delivery, accept assignment, update pickup/drop-off state, share location while active
+Request foreground location only, in context, when the customer checks delivery availability or checks out.
 
-Cannot browse unrelated customer orders or change prices/payments
+Payment
 
-Administrator
+COD only. No payment provider or card data enters the system.
 
-Manage branches, users, menu, promotions, refunds, configuration, and reports
+Delivery fee
 
-High-risk actions require audit logging and stronger authentication
+₹30 when the item subtotal is below ₹299; otherwise ₹0. Store values in paise.
 
-Support agent
+ETA
 
-Search orders, record issues, initiate policy-limited resolutions
+Display 35 minutes only as a configured estimate, not a guarantee.
 
-Refunds above a threshold require administrator approval
+Order identity
 
-Authorization must be enforced in the backend. Hiding a control in the user interface is not authorization.
+Use an opaque internal ID plus a human-friendly public order number.
+
+Price authority
+
+The backend recalculates every amount from current menu data. Client totals are display-only.
+
+Historical price
+
+Persist item name, selected options, quantity, and price snapshots on the order.
+
+Status changes
+
+Allow only transitions defined by the order state machine.
+
+Completed access
+
+Disable operational location actions after DELIVERED, CANCELLED, or REJECTED.
 
 3. System context
 
 flowchart LR
-    Customer["Customer app"]
-    Staff["Restaurant dashboard"]
-    Driver["Delivery app"]
-    Admin["Admin and support"]
-    System["Food Delivery System"]
-    External["Payment, maps and messaging providers"]
+    Customer["Customer app"] --> API["Express API"]
+    Staff["Restaurant admin UI"] --> API
+    API --> DB[("MongoDB Atlas")]
+    API --> Maps["Maps deep link / distance provider"]
+    API --> Notify["Push or notification provider"]
 
-    Customer --> System
-    Staff --> System
-    Driver --> System
-    Admin --> System
-    System <--> External
+Sources of truth
 
-The Food Delivery System is the source of truth for carts, orders, fulfillment status, delivery assignment, and the local record of payments. The payment provider remains the source of truth for actual authorization, capture, and refund settlement.
+Data
 
-4. Key product flow
+Source of truth
 
-The customer selects an address.
+Menu, price, availability
 
-The backend finds a serviceable branch and returns its current menu.
+Backend database
 
-The customer adds items and options to a cart.
+Service radius and fee rules
 
-The backend validates the entire cart and creates a short-lived checkout quote.
+Versioned server configuration
 
-The customer chooses cash on delivery or completes online payment.
+Customer/order ownership
 
-The system creates one order using an idempotency key.
+Backend identity and order record
 
-Restaurant staff accept or reject the order.
+Order status
 
-Staff prepare the food while the system assigns a delivery partner.
+Order document plus status history
 
-The delivery partner picks up and delivers the order.
+Authentication and authorization
 
-The system closes the order and triggers notifications, receipt generation, and analytics.
+Backend-issued session/JWT and server policy
 
-The UI may estimate prices while the customer edits a cart, but only the server-generated checkout quote is authoritative.
+App display state
 
-5. High-level architecture
+Never authoritative; refresh from API after reconnect
+
+4. Architecture
+
+Use a modular monolith. Orders, pricing, identity, serviceability, and notifications remain in one deployable backend but are separated into modules with explicit boundaries.
 
 flowchart TB
-    subgraph Clients["Client applications"]
-        Web["Customer web/mobile"]
-        Ops["Staff and admin UI"]
-        Rider["Delivery partner app"]
+    App["Flutter customer app"] --> Edge["HTTPS edge"]
+    Admin["Admin interface"] --> Edge
+    Edge --> API["Node.js / Express API"]
+
+    subgraph Modules["Application modules"]
+        Identity["Identity and access"]
+        Catalog["Catalog"]
+        Pricing["Pricing and serviceability"]
+        Ordering["Ordering"]
+        Notification["Notifications"]
     end
 
-    Edge["CDN / WAF / load balancer"]
+    API --> Modules
+    Modules --> Mongo[("MongoDB")]
+    Modules --> Cache[("Optional Redis cache")]
+    Notification --> Provider["Notification provider"]
 
-    subgraph Application["Modular application"]
-        API["REST API and real-time gateway"]
-        Core["Domain modules"]
-        Jobs["Background workers"]
-    end
+Why not microservices
 
-    subgraph Data["Owned data infrastructure"]
-        DB[("Relational database")]
-        Cache[("Cache and rate limits")]
-        Queue[("Durable job queue")]
-        Objects[("Object storage")]
-    end
+The current scale and team size do not justify distributed transactions, independent deployments, service discovery, and cross-service observability. Split a module only when measured traffic, ownership, failure isolation, or release cadence proves the need.
 
-    Providers["Payment, maps, push, SMS and email"]
-
-    Web --> Edge
-    Ops --> Edge
-    Rider --> Edge
-    Edge --> API
-    API --> Core
-    Core --> DB
-    Core --> Cache
-    Core --> Queue
-    Core --> Objects
-    Queue --> Jobs
-    Jobs --> DB
-    Jobs --> Providers
-    Core <--> Providers
-
-Why a modular monolith
-
-Orders, inventory, pricing, and payments have strong consistency requirements. Keeping them in one deployable application and one relational database makes transactions and debugging simpler. Modules still communicate through explicit interfaces and domain events. A module should become a separate service only when an observed scaling, reliability, ownership, or release constraint justifies the operational cost.
-
-Application modules
+Module responsibilities
 
 Module
 
 Responsibilities
 
-Owns
+Must not do
 
 Identity
 
-Registration, login, sessions, password reset, role checks
+Login, sessions/JWT, roles, ownership checks
 
-User identities, sessions, role assignments
-
-Customer
-
-Profiles, saved addresses, preferences
-
-Customer profile and address records
+Trust a role supplied by the client
 
 Catalog
 
-Categories, items, variants, add-ons, branch availability
+Menu items, categories, images, availability
 
-Menu definitions and availability
+Calculate historical order totals
 
-Serviceability
+Pricing
 
-Branch selection, delivery zone and opening-hours checks
+Subtotal, fee, total, service radius, quote expiry
 
-Delivery zones and branch schedules
-
-Cart and Pricing
-
-Cart validation, taxes, fees, discounts, checkout quotes
-
-Carts, quotes, promotion redemptions
+Accept client-calculated prices
 
 Ordering
 
-Order creation, state transitions, cancellation rules
+Order creation, idempotency, state transitions, history
 
-Orders, line-item snapshots, status history
-
-Payment
-
-Payment intents, webhook processing, capture, refund records
-
-Provider references and payment ledger
-
-Fulfillment
-
-Restaurant acceptance and preparation workflow
-
-Kitchen tickets and preparation timing
-
-Delivery
-
-Partner availability, assignment, pickup, tracking, proof of delivery
-
-Delivery tasks and location samples
+Skip authorization or transition guards
 
 Notification
 
-Push, SMS, email, templates, retry and preference handling
+New-order alert, customer status update, retries
 
-Notification attempts and delivery state
-
-Support
-
-Issue records, notes, resolution workflow
-
-Support cases and policy decisions
+Act as the source of truth for order state
 
 Administration
 
-Configuration, reporting, menu/branch/user management
+Menu and order operations, reporting
 
-Administrative settings and audit entries
+Bypass audit logging for privileged actions
 
-6. Component rules
-
-API layer
-
-Exposes versioned endpoints under /api/v1.
-
-Authenticates the caller and applies role, ownership, and branch checks.
-
-Validates request syntax and basic shape.
-
-Delegates business decisions to domain modules.
-
-Returns a consistent error envelope and correlation ID.
-
-Never trusts prices, discounts, roles, branch IDs, or order states sent by a client.
-
-Domain layer
-
-Owns business rules and legal state transitions.
-
-Uses database transactions for changes that must succeed or fail together.
-
-Records immutable snapshots for item names, options, quantities, unit prices, taxes, and fees on an order.
-
-Writes an outbox event in the same transaction as every externally visible state change.
-
-Background workers
-
-Publish notifications and analytics.
-
-Retry safe provider calls with exponential backoff and jitter.
-
-Reconcile payments whose webhook or API result is uncertain.
-
-Expire quotes, abandoned carts, and stale assignments.
-
-process outbox events using at-least-once delivery, so every handler must be idempotent.
-
-Data infrastructure
-
-Relational database: source of truth for transactional records.
-
-Cache: menu acceleration, short-lived data, rate limits, and optional distributed locks; never the sole source of truth.
-
-Durable queue: background jobs and retry scheduling.
-
-Object storage: item images, invoices, and proof-of-delivery media using private objects and short-lived signed access.
-
-7. Data model
-
-erDiagram
-    USER ||--o| CUSTOMER : has
-    USER ||--o| DELIVERY_PARTNER : has
-    CUSTOMER ||--o{ ADDRESS : saves
-    BRANCH ||--o{ MENU_ITEM_AVAILABILITY : offers
-    MENU_ITEM ||--o{ MENU_ITEM_AVAILABILITY : has
-    CUSTOMER ||--o{ CART : owns
-    CART ||--|{ CART_ITEM : contains
-    CUSTOMER ||--o{ ORDER : places
-    BRANCH ||--o{ ORDER : fulfills
-    ORDER ||--|{ ORDER_ITEM : contains
-    ORDER ||--o{ PAYMENT : has
-    ORDER ||--o| DELIVERY : requires
-    DELIVERY_PARTNER ||--o{ DELIVERY : performs
-    ORDER ||--o{ ORDER_STATUS_HISTORY : records
-    ORDER ||--o{ SUPPORT_CASE : may_open
-
-Core records
-
-Record
-
-Important fields
-
-users
-
-id, email, phone, password_hash, status, timestamps
-
-role_assignments
-
-user_id, role, optional branch_id
-
-customers
-
-id, user_id, display_name, preferences
-
-addresses
-
-id, customer_id, label, address fields, latitude, longitude, delivery notes
-
-branches
-
-id, name, address, coordinates, timezone, status, operating hours
-
-delivery_zones
-
-id, branch_id, polygon or rule, minimum order, delivery fee
-
-menu_items
-
-id, category, name, description, image key, base price, status
-
-menu_item_availability
-
-branch_id, menu_item_id, stock/availability flag, override price
-
-carts
-
-id, customer_id, branch_id, currency, version, expiry
-
-cart_items
-
-cart_id, menu_item_id, variant/add-on selections, quantity
-
-checkout_quotes
-
-id, cart_id, item subtotal, discount, tax, fees, total, currency, expiry, input hash
-
-orders
-
-id, public order number, customer, branch, address snapshot, state, totals, currency, timestamps
-
-order_items
-
-order_id, item/variant/add-on snapshots, quantity, unit price, line total
-
-order_status_history
-
-order_id, from/to states, actor, reason, timestamp
-
-payments
-
-id, order_id, method, provider, provider reference, state, amount, idempotency key
-
-refunds
-
-id, payment_id, amount, reason, state, provider reference
-
-deliveries
-
-id, order_id, partner, state, assignment/pickup/drop-off times, proof key
-
-delivery_locations
-
-delivery_id, coordinates, accuracy, recorded timestamp, retention expiry
-
-outbox_events
-
-id, event type, aggregate ID, payload, attempts, publish state
-
-audit_logs
-
-actor, action, target type/ID, before/after summary, IP, timestamp
-
-Data invariants
-
-Money is stored as integers in the currency's smallest unit; floating-point types are forbidden.
-
-Every order belongs to exactly one customer and one branch.
-
-Order items store price and description snapshots; later menu edits never change historical orders.
-
-orders.total = item_subtotal - discount + tax + delivery_fee + packaging_fee.
-
-The currency is fixed when the checkout quote is created.
-
-A successful idempotency key maps to only one logical order or payment operation.
-
-Only approved state transitions may append to order or delivery history.
-
-Inventory/availability and order creation are checked in the same transaction where practical.
-
-Provider secrets and raw card details are never stored.
-
-8. Order lifecycle
-
-stateDiagram-v2
-    [*] --> PendingPayment
-    PendingPayment --> Placed: payment confirmed or COD selected
-    PendingPayment --> PaymentFailed: payment fails or expires
-    Placed --> Confirmed: restaurant accepts
-    Placed --> Rejected: restaurant rejects
-    Placed --> Cancelled: customer/system cancels
-    Confirmed --> Preparing
-    Confirmed --> Cancelled: approved exception
-    Preparing --> ReadyForPickup
-    ReadyForPickup --> PickedUp
-    PickedUp --> OutForDelivery
-    OutForDelivery --> Delivered
-    OutForDelivery --> DeliveryFailed
-    Rejected --> RefundPending: prepaid
-    Cancelled --> RefundPending: prepaid and captured
-    RefundPending --> Refunded
-    PaymentFailed --> [*]
-    Delivered --> [*]
-    DeliveryFailed --> [*]
-    Refunded --> [*]
-
-Transition ownership
-
-Transition
-
-Allowed actor/system
-
-Guard conditions
-
-PendingPayment → Placed
-
-Payment webhook, payment reconciliation worker, or COD checkout
-
-Valid unexpired quote; payment confirmed when prepaid
-
-Placed → Confirmed
-
-Assigned branch staff
-
-Branch open; order not expired or cancelled
-
-Placed → Rejected
-
-Assigned branch staff or timeout job
-
-Mandatory reason; prepaid refund workflow starts
-
-Confirmed → Preparing
-
-Assigned branch staff
-
-Order accepted
-
-Preparing → ReadyForPickup
-
-Assigned branch staff
-
-Food packed and handoff code generated
-
-ReadyForPickup → PickedUp
-
-Assigned partner
-
-Assignment active; pickup verification succeeds
-
-PickedUp → OutForDelivery
-
-Assigned partner/system
-
-Pickup recorded
-
-OutForDelivery → Delivered
-
-Assigned partner
-
-Delivery verification or approved exception
-
-Any allowed state → Cancelled
-
-Customer, staff, support, or system
-
-Cancellation policy and authorization pass
-
-Terminal states are not reopened. Corrections occur through compensating records such as refunds, support cases, and audit entries.
-
-9. Checkout and delivery sequence
+5. Request flow
 
 sequenceDiagram
     autonumber
     actor C as Customer
-    participant API as Application API
-    participant DB as Database
-    participant Pay as Payment provider
-    participant Ops as Restaurant dashboard
-    participant D as Delivery partner
+    participant A as Flutter app
+    participant API as Backend API
+    participant DB as MongoDB
+    participant S as Restaurant staff
 
-    C->>API: Request checkout quote
-    API->>DB: Validate branch, menu, stock and promotion
-    DB-->>API: Current inputs
-    API-->>C: Signed quote with expiry and total
-    C->>API: Place order with idempotency key
-    API->>Pay: Create/confirm payment intent
-    Pay-->>API: Payment pending
-    API-->>C: Checkout processing
-    Pay-->>API: Signed payment webhook
-    API->>DB: Transaction: record payment, order and outbox event
-    API-->>Pay: Webhook acknowledged
-    API-->>Ops: New order event
-    Ops->>API: Accept and prepare order
-    API->>D: Offer delivery assignment
-    D->>API: Accept, pick up and deliver
-    API-->>C: Real-time status updates
+    C->>A: Select items and address
+    A->>API: Request authoritative checkout quote
+    API->>DB: Read menu, configuration, and availability
+    API->>API: Validate 15 km radius and calculate totals
+    API-->>A: Quote with ID, expiry, and input hash
+    C->>A: Confirm COD order
+    A->>API: POST order with Idempotency-Key
+    API->>DB: Atomically create order and idempotency record
+    API-->>A: Return created or previously created order
+    API-->>S: New-order notification
+    S->>API: Apply authorized status transition
+    API-->>A: Poll/reconnect and receive current state
 
-If the client loses its connection after submitting an order, it repeats the request with the same idempotency key. The backend returns the original result instead of creating a second order.
+If the response to POST /orders is lost, the app retries with the same Idempotency-Key. The backend returns the original result instead of creating another order.
 
-10. Pricing and promotion rules
+6. Roles and authorization
 
-The server calculates all amounts in this order:
+Authorization is enforced in backend queries and domain policies. Hiding UI controls is not authorization.
 
-Resolve the branch and verify serviceability.
+Capability
 
-Load current item, variant, and add-on prices.
+Customer
 
-Validate quantities and availability.
+Restaurant staff
+
+Administrator
+
+Browse menu
+
+Yes
+
+Yes
+
+Yes
+
+Create own order
+
+Yes
+
+No
+
+No
+
+Read own order
+
+Yes
+
+No
+
+Yes
+
+Read all operational orders
+
+No
+
+Yes
+
+Yes
+
+Accept/reject/prepare/dispatch
+
+No
+
+Yes
+
+Yes
+
+Mark delivered/cancel with policy
+
+Limited
+
+Yes
+
+Yes
+
+Change menu/price
+
+No
+
+No
+
+Yes
+
+Manage staff or secrets
+
+No
+
+No
+
+Yes
+
+View customer coordinates
+
+Own address only
+
+Active order only
+
+Active order only
+
+View audit logs
+
+No
+
+No
+
+Yes
+
+Identity requirements
+
+A phone number alone is not proof of ownership unless it has been verified by OTP or is bound to an authenticated account.
+
+Never implement GET /orders/phone/{phone} as an unrestricted endpoint. Either remove it or require authentication and match the verified phone server-side.
+
+Admin accounts require unique users, strong password hashing, short-lived access tokens, rotating refresh tokens, and revocation support.
+
+High-risk admin actions require recent authentication. MFA is recommended before adding refunds or staff management.
+
+7. Data model
+
+MongoDB remains the transactional store for the current architecture. Collections are modeled to preserve order history rather than joining live menu data during reads.
+
+erDiagram
+    USER ||--o{ ORDER : places
+    ORDER ||--|{ ORDER_ITEM : contains
+    ORDER ||--o{ ORDER_EVENT : records
+    MENU_ITEM ||--o{ ORDER_ITEM : snapshots
+    IDEMPOTENCY_RECORD ||--|| ORDER : resolves_to
+    ADMIN_USER ||--o{ AUDIT_LOG : creates
+
+Collections
+
+users
+
+_id, verifiedPhone, name, email?, status,
+createdAt, updatedAt
+
+Indexes:
+
+Unique partial index on verifiedPhone.
+
+Optional unique partial index on normalized email.
+
+admin_users
+
+_id, username/email, passwordHash, roles[], status,
+tokenVersion, lastLoginAt, createdAt, updatedAt
+
+Passwords use Argon2id or bcrypt with a reviewed cost. Never store plaintext passwords or reusable reset tokens.
+
+menu_items
+
+_id, name, description, category, imageUrl/imageKey,
+pricePaise, isAvailable, sortOrder, version,
+createdAt, updatedAt
+
+Indexes:
+
+{ isAvailable: 1, category: 1, sortOrder: 1 }
+
+Optional text/search index only if the product has search.
+
+orders
+
+_id, publicOrderNumber, customerId,
+customerSnapshot { name, verifiedPhone },
+deliveryAddressSnapshot { text, latitude, longitude },
+items[] { menuItemId, name, unitPricePaise, quantity, lineTotalPaise },
+itemSubtotalPaise, deliveryFeePaise, totalPaise,
+paymentMethod, paymentState, status,
+idempotencyKey, statusHistory[], cancellationReason?,
+version, createdAt, updatedAt, deliveredAt?
+
+Indexes:
+
+Unique { customerId: 1, idempotencyKey: 1 }
+
+Unique { publicOrderNumber: 1 }
+
+{ status: 1, createdAt: -1 } for the admin queue
+
+{ customerId: 1, createdAt: -1 } for order history
+
+{ createdAt: -1 } for reporting windows
+
+idempotency_records
+
+_id, scope, actorId, key, requestHash,
+resourceType, resourceId, responseStatus, responseBody,
+state, expiresAt, createdAt
+
+Use a unique compound index on { scope, actorId, key }. A reused key with a different requestHash returns 409 IDEMPOTENCY_KEY_REUSED.
+
+audit_logs
+
+_id, actorId, actorRole, action, targetType, targetId,
+beforeSummary?, afterSummary?, reason?, correlationId,
+ipHash?, createdAt
+
+Audit logs are append-only from the application perspective.
+
+Data invariants
+
+Money is stored as integer paise. Floating-point money is forbidden.
+
+totalPaise = itemSubtotalPaise + deliveryFeePaise for the current COD product.
+
+Every order contains at least one item with a positive quantity.
+
+Every line total equals unitPricePaise × quantity.
+
+Menu edits never change existing order snapshots.
+
+paymentMethod is COD; current paymentState is one of PENDING_COD, COLLECTED, or WAIVED.
+
+Only a legal state transition may append to statusHistory.
+
+Terminal orders cannot return to an active state.
+
+An idempotency key resolves to at most one logical order.
+
+Retention correction
+
+Do not delete complete order records 24 hours after delivery or cancellation. That destroys support evidence, revenue history, and auditability. If the existing TTL performs this deletion, remove it before claiming production readiness.
+
+Use separate retention policies:
+
+Data
+
+Recommended baseline
+
+Order and price snapshots
+
+Retain according to business, tax, and legal requirements
+
+Precise coordinates
+
+Remove or coarsen shortly after the delivery/support window
+
+Idempotency responses
+
+24–72 hours, longer than every client retry window
+
+Access/session records
+
+Security-policy based
+
+Application logs
+
+30–90 days with sensitive-field redaction
+
+Audit logs
+
+Longer controlled retention; access restricted
+
+Final retention periods require owner and jurisdiction review.
+
+8. Order state machine
+
+Use one canonical enum across backend, database, API contracts, analytics, and clients.
+
+stateDiagram-v2
+    [*] --> PENDING
+    PENDING --> ACCEPTED: staff accepts
+    PENDING --> REJECTED: staff rejects
+    PENDING --> CANCELLED: customer/staff cancels
+    ACCEPTED --> PREPARING: preparation starts
+    ACCEPTED --> CANCELLED: approved exception
+    PREPARING --> OUT_FOR_DELIVERY: dispatched
+    PREPARING --> CANCELLED: approved exception
+    OUT_FOR_DELIVERY --> DELIVERED: delivery confirmed
+    OUT_FOR_DELIVERY --> CANCELLED: admin exception
+    REJECTED --> [*]
+    CANCELLED --> [*]
+    DELIVERED --> [*]
+
+From
+
+To
+
+Allowed actor
+
+Required guard
+
+PENDING
+
+ACCEPTED
+
+Staff/Admin
+
+Order is still current and available
+
+PENDING
+
+REJECTED
+
+Staff/Admin
+
+Non-empty reason
+
+PENDING
+
+CANCELLED
+
+Customer/Staff/Admin
+
+Customer owns order; cancellation window open
+
+ACCEPTED
+
+PREPARING
+
+Staff/Admin
+
+Optimistic version matches
+
+ACCEPTED
+
+CANCELLED
+
+Staff/Admin
+
+Reason and audit entry
+
+PREPARING
+
+OUT_FOR_DELIVERY
+
+Staff/Admin
+
+Dispatch confirmed
+
+PREPARING
+
+CANCELLED
+
+Admin
+
+Exceptional reason and audit entry
+
+OUT_FOR_DELIVERY
+
+DELIVERED
+
+Staff/Admin
+
+Delivery confirmation recorded
+
+OUT_FOR_DELIVERY
+
+CANCELLED
+
+Admin
+
+Exceptional reason and audit entry
+
+Every transition performs a conditional update using the current status and version. A stale request returns 409 ORDER_VERSION_CONFLICT and does not overwrite newer state.
+
+9. Pricing and checkout
+
+Load the current menu items by ID.
+
+Reject missing, disabled, or unavailable items.
+
+Normalize quantities and enforce per-item and per-order limits.
+
+Calculate each line total in paise.
 
 Calculate item subtotal.
 
-Apply eligible item- and order-level discounts with explicit stacking rules.
+Apply delivery fee: ₹30 below ₹299; otherwise ₹0.
 
-Calculate taxes according to configured jurisdiction rules.
+Validate serviceability against the configured restaurant coordinates.
 
-Add delivery, packaging, small-order, and other disclosed fees.
+Return an expiring quote with an input hash.
 
-Round once at defined boundaries using a documented currency rule.
+Revalidate the quote when creating the order.
 
-Persist an expiring quote containing the input hash and every price component.
+Persist all price and address snapshots atomically with the order.
 
-At order submission, the server revalidates the quote. If price, stock, address, promotion, branch, or expiry changed, checkout stops and returns a new quote for customer approval. The system must never silently charge a changed total.
+If a price, item, address, radius rule, or quote expiry changes, return a new quote for explicit customer confirmation. Never silently create an order with a changed total.
 
-11. Serviceability and branch selection
+Quote fields
 
-Normalize and geocode the delivery address.
+{
+  "quoteId": "q_01...",
+  "itemSubtotalPaise": 27000,
+  "deliveryFeePaise": 0,
+  "totalPaise": 27000,
+  "currency": "INR",
+  "paymentMethod": "COD",
+  "expiresAt": "2026-08-24T16:00:00Z",
+  "inputHash": "sha256:..."
+}
 
-Find active branches whose delivery zones include the location.
+10. Serviceability and location privacy
 
-Remove closed, paused, overloaded, or item-incompatible branches.
+Distance validation
 
-Rank candidates by configured priority and estimated delivery time.
+Store restaurant coordinates in validated server configuration.
 
-Lock the chosen branch into the cart and quote.
+Validate latitude in [-90, 90] and longitude in [-180, 180].
 
-Distance alone is insufficient: a nearby branch may be separated by an inaccessible route or outside a configured delivery polygon. If geocoding or route estimation is unavailable, use a conservative configured fallback and clearly label the ETA as unavailable; do not promise a fabricated time.
+Calculate straight-line distance with Haversine as the deterministic baseline.
 
-12. Delivery assignment
+If road-distance routing is added, use it as an additional business rule and define a fallback.
 
-flowchart TD
-    Ready["Order confirmed"] --> Candidates["Find eligible nearby partners"]
-    Candidates --> Offer["Offer assignment with expiry"]
-    Offer -->|Accepted atomically| Assigned["Create active assignment"]
-    Offer -->|Declined or timed out| More{"Candidates remain?"}
-    More -->|Yes| Offer
-    More -->|No| Escalate["Notify operations for manual assignment"]
-    Assigned --> Pickup["Pickup verification"]
-    Pickup --> Deliver["Delivery verification"]
+Add a small documented tolerance only for GPS accuracy; never let the client decide the radius.
 
-Only one partner may hold the active assignment. Acceptance uses a conditional database update or uniqueness constraint to prevent two partners from winning the same offer. Location collection starts only for an active delivery and stops at a terminal state.
+Reject invalid, missing, spoof-suspicious, or out-of-range coordinates with a stable business error.
 
-13. API design
+Permission and collection rules
+
+Ask for location only after the user taps a relevant action such as Use current location.
+
+Provide manual address entry when location permission is denied.
+
+Do not request Android background-location permission.
+
+Do not continuously track the customer.
+
+Store only the delivery location needed to fulfill the order.
+
+Staff navigation is available only for an active order.
+
+After a terminal state, the API omits precise coordinates from operational responses and the UI removes the map action.
+
+Log access to precise coordinates if staff access is introduced beyond the current admin workflow.
+
+11. API contract
 
 Conventions
 
-JSON request and response bodies over HTTPS.
+HTTPS only in production.
 
-Version prefix: /api/v1.
+Base path: /api/v1.
 
-UTC timestamps in ISO 8601; branch opening hours use the branch timezone.
+JSON request and response bodies.
 
-Cursor-based pagination for changing lists.
+ISO 8601 timestamps in UTC; display in Asia/Kolkata where required.
 
-Idempotency-Key required for order creation, payment confirmation, cancellation, and refund mutations.
+Idempotency-Key required for order creation and other retriable mutations.
 
-X-Correlation-ID accepted or generated and returned on every request.
+X-Correlation-ID accepted or generated and returned.
 
-Optimistic concurrency through a record version or If-Match for staff updates.
+Cursor pagination for growing order lists.
 
-Sensitive values are omitted from logs and API responses.
+Request body, query, and path validation at the boundary.
 
-Representative endpoints
+Stable machine-readable error codes.
+
+Core endpoints
 
 Method
 
 Endpoint
 
+Access
+
 Purpose
 
-POST
-
-/auth/register
-
-Register a customer
-
-POST
-
-/auth/login
-
-Create a session/token pair
-
 GET
 
-/branches/serviceable?lat=&lng=
+/menu
 
-Resolve eligible branches
+Public
 
-GET
-
-/branches/{branchId}/menu
-
-Fetch branch menu and availability
-
-GET
-
-/cart
-
-Read current cart
-
-PUT
-
-/cart/items/{itemId}
-
-Add or replace cart item quantity/options
+Published menu with availability and version
 
 POST
 
 /checkout/quotes
 
-Validate cart and return authoritative quote
+Customer
+
+Authoritative totals and serviceability check
 
 POST
 
 /orders
 
-Create order idempotently
+Customer
+
+Idempotent COD order creation
 
 GET
 
-/orders/{orderId}
+/orders/:id
 
-Read an authorized order
+Owner/Admin
 
-POST
-
-/orders/{orderId}/cancel
-
-Request policy-checked cancellation
-
-POST
-
-/payments/webhooks/{provider}
-
-Receive signed provider event
+Read one authorized order
 
 GET
 
-/staff/orders
+/orders
 
-List branch-scoped kitchen orders
+Customer
+
+Read authenticated customer's orders
 
 POST
 
-/staff/orders/{orderId}/transitions
+/orders/:id/cancel
 
-Apply staff state transition
+Owner/Admin
+
+Policy-checked cancellation
+
+POST
+
+/auth/login
+
+Admin
+
+Create authenticated admin session
+
+POST
+
+/auth/refresh
+
+Admin
+
+Rotate refresh token
+
+POST
+
+/auth/logout
+
+Admin
+
+Revoke current refresh token/session
 
 GET
 
-/delivery/offers
+/admin/orders
 
-List assignment offers for current partner
+Staff/Admin
 
-POST
-
-/delivery/offers/{offerId}/accept
-
-Atomically accept offer
+Paginated operational order list
 
 POST
 
-/deliveries/{deliveryId}/transitions
+/admin/orders/:id/transitions
 
-Record pickup/delivery transition
+Staff/Admin
 
-POST
+Apply guarded state transition
 
-/deliveries/{deliveryId}/locations
+GET
 
-Submit throttled active-delivery location
+/health/live
 
-POST
+Internal/Public-safe
 
-/orders/{orderId}/support-cases
+Process liveness only
 
-Open an order issue
+GET
 
-Success envelope
+/health/ready
+
+Internal
+
+Dependency readiness without secret details
+
+Legacy routes may remain temporarily, but authorization and response semantics must match this contract. Deprecations require logs, client migration, and a removal date.
+
+Success response
 
 {
   "data": {
-    "orderId": "ord_01J...",
-    "status": "PLACED"
+    "id": "ord_01...",
+    "publicOrderNumber": "PB-20260824-1042",
+    "status": "PENDING"
   },
   "meta": {
-    "correlationId": "req_01J..."
+    "correlationId": "req_01..."
   }
 }
 
-Error envelope
+Error response
 
 {
   "error": {
-    "code": "QUOTE_EXPIRED",
-    "message": "The checkout quote expired. Review the updated total.",
-    "details": {
-      "newQuoteId": "quote_01J..."
-    },
+    "code": "ADDRESS_NOT_SERVICEABLE",
+    "message": "Delivery is available only within 15 km.",
+    "details": {},
     "retryable": false,
-    "correlationId": "req_01J..."
+    "correlationId": "req_01..."
   }
 }
-
-Clients branch on the stable code, not the human-readable message. Internal exceptions, SQL text, provider payloads, and stack traces are never exposed.
-
-14. Error handling
 
 Error taxonomy
 
 HTTP
 
-Example code
+Code
 
-Meaning
-
-Client behavior
+Client action
 
 400
 
 VALIDATION_ERROR
 
-Malformed or incomplete input
-
-Correct highlighted fields; do not retry unchanged request
+Correct highlighted input; do not retry unchanged
 
 401
 
 AUTHENTICATION_REQUIRED
 
-Missing, expired, or invalid session
-
-Refresh once or ask user to sign in
+Refresh once or authenticate
 
 403
 
 FORBIDDEN
-
-Authenticated but not authorized
 
 Stop; do not retry
 
@@ -815,255 +880,145 @@ Stop; do not retry
 
 ORDER_NOT_FOUND
 
-Missing or intentionally hidden resource
+Show not found without leaking ownership
 
-Show not found without revealing ownership information
+409
+
+IDEMPOTENCY_KEY_REUSED
+
+Generate a new key only for a genuinely new operation
+
+409
+
+ORDER_VERSION_CONFLICT
+
+Refetch order and available actions
 
 409
 
 INVALID_ORDER_TRANSITION
 
-State or version conflict
-
-Reload current resource and recompute available actions
+Refetch; do not force the transition
 
 409
 
 ITEM_UNAVAILABLE
 
-Menu/stock changed
-
-Refresh cart and request confirmation
+Refresh menu/cart and request confirmation
 
 410
 
 QUOTE_EXPIRED
 
-Checkout quote expired
-
-Obtain and display a new quote
+Request and display a new quote
 
 422
 
 ADDRESS_NOT_SERVICEABLE
 
-Valid input fails a business rule
-
-Ask for another address or pickup option
+Ask for another address
 
 429
 
 RATE_LIMITED
 
-Too many requests
-
-Honor Retry-After; apply backoff
-
-502
-
-PROVIDER_ERROR
-
-External provider failed definitively
-
-Offer safe retry or another method
+Honor Retry-After
 
 503
 
 SERVICE_UNAVAILABLE
 
-Temporary capacity/dependency problem
+Back off while preserving cart/idempotency key
 
-Back off; preserve cart and idempotency key
+Never expose stack traces, database errors, secrets, or unrestricted provider payloads.
 
-504
+12. Idempotency and duplicate prevention
 
-PROVIDER_TIMEOUT
+Client-side button disabling improves UX but does not prevent duplicates. The backend must provide the guarantee.
 
-Provider outcome may be unknown
+Algorithm
 
-Show processing; poll/reconcile instead of repeating payment
+Require a high-entropy Idempotency-Key generated once per checkout attempt.
 
-Failure policy
+Canonicalize the validated request and compute requestHash.
 
-flowchart TD
-    Failure["Operation failed"] --> Known{"Outcome known?"}
-    Known -->|Yes, permanent| Reject["Return actionable domain error"]
-    Known -->|Yes, transient| RetrySafe{"Operation idempotent?"}
-    Known -->|No| Reconcile["Mark pending and reconcile"]
-    RetrySafe -->|Yes| Backoff["Retry with backoff and jitter"]
-    RetrySafe -->|No| Manual["Stop and require explicit recovery"]
-    Backoff --> Limit{"Retry budget exhausted?"}
-    Limit -->|No| RetrySafe
-    Limit -->|Yes| DeadLetter["Dead-letter and alert"]
-    Reconcile --> Resolve["Query authoritative provider/state"]
+Atomically insert an idempotency record with a unique compound key.
 
-Critical failure scenarios
+If insert wins, create the order and persist the final response reference.
 
-Scenario
+If the key exists with the same hash, return the original result.
 
-Required behavior
+If the key exists with a different hash, return 409 IDEMPOTENCY_KEY_REUSED.
 
-Payment succeeds but API response is lost
+If processing was interrupted, recover from the stored state; do not create a second order.
 
-Same idempotency key returns the original order; webhook/reconciliation completes pending state
+MongoDB transactions require a replica set; MongoDB Atlas supports this. If transactions are temporarily unavailable, use a uniquely indexed order key and a carefully tested recovery path—never a check-then-insert sequence without uniqueness.
 
-Payment provider times out
+13. Concurrency and consistency
 
-Do not call it a failure or charge again; show PROCESSING and reconcile using provider reference
+Use Mongoose sessions/transactions for order, history, and idempotency writes that must commit together.
 
-Duplicate or out-of-order webhook
+Use version in conditional order updates to prevent lost updates.
 
-Verify signature, deduplicate by provider event ID, and apply only legal monotonic transitions
+Never hold a database transaction open while calling a slow external provider.
 
-Database commits but notification fails
+Every retryable notification has a stable deduplication key such as orderId:eventType:transitionVersion.
 
-Outbox remains pending; worker retries without rolling back the order
+Real-time/polling updates are delivery mechanisms, not truth; the client refetches the order after reconnect.
 
-Item becomes unavailable during checkout
+State history is append-only and written with the transition.
 
-Reject stale quote, return updated cart/quote, require customer approval
+Failure behavior
 
-Two staff members update one order
+Failure
 
-Optimistic concurrency rejects the stale update with 409
+Required result
 
-Two partners accept one offer
+Client times out after order commit
 
-Atomic conditional update allows one winner; loser receives OFFER_ALREADY_ASSIGNED
+Retry returns the original order
 
-Restaurant rejects prepaid order
+Notification fails after order commit
 
-Record rejection, initiate refund idempotently, and expose REFUND_PENDING
+Order remains valid; notification retries separately
 
-Maps provider unavailable
+Two staff updates race
 
-Retain valid address, use conservative zone fallback if configured, withhold precise ETA
+One conditional update wins; stale request gets 409
 
-Messaging provider unavailable
+Menu changes after quote
 
-Order continues; retry notification and keep in-app status authoritative
+Order creation stops and returns an updated quote
 
-Delivery cannot be completed
+Cache unavailable
 
-Record reason and evidence, notify support, preserve food/payment decision for manual policy handling
+Read from MongoDB; correctness is unchanged
 
-Retries are bounded. Infinite retries hide incidents and can amplify provider outages.
+Maps/deep link unavailable
 
-15. Payment design
+Preserve address and show manual fallback; do not fabricate navigation
 
-Use a hosted payment page or provider SDK so card data does not pass through the application servers.
+Database unavailable
 
-Create a unique local payment record before making the provider request.
+Fail closed; do not claim the order was created
 
-Send the same idempotency key on every retry supported by the provider.
+14. Caching and performance
 
-Verify webhook signature, timestamp tolerance, event ID, amount, currency, and referenced local order.
+Redis is optional until measurements justify it. Adding Redis before fixing indexes, payload size, hosting sleep, and query count will not solve a 40–50 second first response.
 
-A browser redirect is not proof of payment; only a verified webhook or reconciliation result is authoritative.
+Required order of work
 
-Separate payment state from order state because payment and fulfillment resolve at different times.
+Use an always-on production backend. A sleeping/free instance cannot meet an availability or latency SLO.
 
-Never mark a refund complete until the provider confirms it.
+Add and verify MongoDB indexes with query plans.
 
-Run scheduled reconciliation for payments/refunds stuck in a pending state.
+Remove N+1 queries and return only required fields.
 
-Record adjustments as append-only ledger entries instead of rewriting financial history.
+Compress responses and optimize menu images through a CDN/object store.
 
-Suggested payment states: CREATED, PENDING, AUTHORIZED, CAPTURED, FAILED, CANCELLED, PARTIALLY_REFUNDED, and REFUNDED.
+Add HTTP caching (ETag, Cache-Control) for published menus.
 
-16. Security and privacy
-
-Authentication and sessions
-
-Hash passwords with Argon2id or a current equivalent and unique salts.
-
-Use short-lived access tokens plus rotating refresh tokens, or secure server sessions.
-
-Store browser session tokens in HttpOnly, Secure, SameSite cookies where applicable.
-
-Require multi-factor authentication for administrators and refund-capable staff.
-
-Revoke sessions after password reset, account disablement, or suspected compromise.
-
-Authorization
-
-Default deny for every endpoint.
-
-Enforce resource ownership, role, and branch scope in backend queries.
-
-Use step-up authentication or approval for high-value refunds and destructive administration.
-
-Keep an immutable audit trail for status overrides, menu price changes, refunds, role changes, and configuration edits.
-
-Data protection
-
-TLS for all traffic and managed encryption at rest.
-
-Secrets in a secret manager, never source control or client bundles.
-
-Redact tokens, phone numbers, address details, webhook bodies, and payment references from logs.
-
-Collect delivery location only during active assignments at the lowest useful frequency.
-
-Define and enforce retention periods for precise location, proof images, support records, and audit logs.
-
-Provide account export/deletion workflows consistent with applicable law and financial record obligations.
-
-Abuse controls
-
-Per-IP and per-account rate limits on login, OTP, promotion validation, checkout, and support endpoints.
-
-Bot and credential-stuffing detection.
-
-Promotion usage limits enforced transactionally.
-
-Velocity/risk checks for repeated failed payments, excessive cancellations, and refund abuse.
-
-File type, size, and malware checks for uploaded proof/support media.
-
-17. Reliability and consistency
-
-Transaction boundaries
-
-Use one database transaction for:
-
-cart validation plus quote creation;
-
-order creation plus order-item snapshots plus idempotency record plus outbox event;
-
-order transition plus history entry plus outbox event;
-
-delivery offer acceptance plus assignment creation;
-
-refund initiation record plus outbox event.
-
-Do not keep a database transaction open during a slow external API call. Persist intent, call the provider with an idempotency key, then persist the result or reconcile it later.
-
-Delivery guarantees
-
-API commands: effectively once through idempotency records.
-
-Queue/outbox events: at least once, with idempotent consumers.
-
-Notifications: best effort with retries; never the source of truth.
-
-Real-time updates: resumable convenience channel; clients refetch current state after reconnect.
-
-Availability controls
-
-Health checks distinguish process health from dependency readiness.
-
-Circuit breakers protect the application during provider failure.
-
-Timeouts are shorter than upstream/request time budgets.
-
-Retry budgets prevent retry storms.
-
-Backpressure pauses noncritical jobs before transactional APIs are affected.
-
-Graceful shutdown stops new work and returns in-flight jobs to the queue safely.
-
-18. Caching
+Add a short Redis menu cache only if multi-instance load measurements still require it.
 
 Data
 
@@ -1071,352 +1026,625 @@ Strategy
 
 Invalidation
 
-Public menu definitions
+Published menu
 
-CDN/application cache with short TTL
+CDN/HTTP cache; optional Redis
 
-Menu publish event and TTL
+Menu version change plus short TTL
 
-Branch availability
+Admin order queue
 
-Very short TTL or direct read
+MongoDB query; optional very short cache
 
-Staff availability change event
+Every order transition
 
-Serviceability results
+Customer order
 
-Cache by coarse location and branch config version
+MongoDB source of truth
 
-Zone/config publish event
-
-Cart
-
-Database source of truth; optional read-through cache
-
-Every cart mutation
-
-Order status
-
-Database source of truth; optional short cache
-
-Every legal transition
+Every order transition
 
 Rate limits
 
-Atomic counters in cache
+Redis atomic counters in multi-instance production
 
 Automatic expiry
 
-Checkout never trusts cached availability or cached price without authoritative revalidation.
+Checkout quote
 
-19. Observability
+Database or cache with signed/input hash and expiry
+
+Expiry or input change
+
+Never trust cached price or availability at order creation; revalidate against authoritative data.
+
+Initial budgets
+
+Operation
+
+Target after warm-up
+
+Menu API p95
+
+< 300 ms, excluding image transfer
+
+Order read p95
+
+< 400 ms
+
+COD order creation p95
+
+< 800 ms
+
+Admin transition p95
+
+< 500 ms
+
+App first usable menu on typical 4G
+
+< 2.5 s with cached assets
+
+Targets must be validated with production-like load tests and revised from real telemetry.
+
+15. Notifications and live updates
+
+The current application may use polling. Polling is acceptable when bounded and measured.
+
+Use an adaptive interval: faster for active orders, slower for terminal/inactive screens.
+
+Stop polling when the app is backgrounded or the order is terminal.
+
+Add jitter to avoid synchronized request spikes.
+
+Support conditional reads with ETag or updatedAt.
+
+A missed push, socket event, or beep must not hide the order; admin screens refetch authoritative state.
+
+Any repeating new-order sound needs an acknowledgement state and a bounded duration.
+
+If Socket.IO is introduced, configure the correct server path, proxy upgrades, authentication, reconnect, and full refetch after reconnect.
+
+16. Security
+
+Authentication
+
+Hash passwords with Argon2id or bcrypt and unique salts.
+
+Use short-lived access tokens and rotated, revocable refresh tokens; do not store long-lived bearer tokens in insecure client storage.
+
+Rate-limit login and add escalating delay after repeated failures.
+
+Revoke sessions after password reset, account disablement, or suspected compromise.
+
+Store secrets only in managed environment configuration/secret storage.
+
+Authorization
+
+Default-deny every protected endpoint.
+
+Filter database queries by authenticated owner/admin scope, not a caller-supplied phone or user ID.
+
+Validate order transition permissions in one central policy.
+
+Audit status overrides, cancellations, menu price changes, user/role changes, and data exports.
+
+Input and application security
+
+Validate every request with explicit schemas and reject unknown dangerous fields.
+
+Apply secure HTTP headers, strict CORS allowlists, request-size limits, and dependency scanning.
+
+Prevent NoSQL injection by disallowing arbitrary MongoDB operators in user input.
+
+Normalize phone numbers, trim strings, cap lengths, and escape output for the target UI.
+
+Never log JWTs, passwords, OTPs, full addresses, precise coordinates, or complete request bodies containing personal data.
+
+Back up MongoDB with encryption and test restoration.
+
+Threat summary
+
+Threat
+
+Primary control
+
+Read another customer's order
+
+Verified identity plus ownership-scoped query
+
+Forge admin role
+
+Backend-issued claims plus database status check
+
+Duplicate order
+
+Idempotency record plus unique index
+
+Tamper with price
+
+Server quote and order-time recalculation
+
+Force invalid status
+
+Central state machine plus conditional update
+
+Credential stuffing
+
+Rate limit, lockout/risk signals, MFA for admins
+
+NoSQL injection
+
+Schema allowlist and operator sanitization
+
+Secret leakage
+
+Secret manager, redacted logs, no secrets in clients/repo
+
+Excess location exposure
+
+Active-order authorization and coordinate redaction
+
+17. Privacy
+
+The product collects only data needed to accept and deliver an order: customer name, verified contact details, delivery address, optional foreground location, order contents, and operational metadata.
+
+Required controls:
+
+In-context disclosure before requesting location.
+
+Manual address fallback.
+
+Privacy policy matching actual collection and retention.
+
+Purpose limitation: location is used for serviceability and delivery, not advertising.
+
+Access control for customer contact and address details.
+
+Documented correction, deletion, and support-contact flow, subject to required legal retention.
+
+A retention job that removes precise coordinates separately without deleting the financial/order record.
+
+No background location permission or hidden collection.
+
+18. Observability
 
 Structured logs
 
-Every log event should include, where relevant:
+Include timestamp, severity, deployment version, module, event name, correlation ID, safe user/order identifiers, outcome, latency, and normalized error code. Use redaction before logs leave the process.
 
-timestamp and severity;
-
-service/module and deployment version;
-
-correlation ID, trace ID, and request ID;
-
-user/branch/order identifiers in safe internal form;
-
-event name, outcome, latency, and normalized error code.
-
-Never log credentials, access tokens, OTPs, complete addresses, raw payment data, or unrestricted provider payloads.
-
-Metrics and service-level indicators
+Metrics
 
 Area
 
-Key metrics
+Metrics
 
 API
 
-Request rate, p50/p95/p99 latency, 4xx/5xx rate, saturation
+Request rate, p50/p95/p99 latency, 4xx/5xx, active requests
+
+Menu
+
+Cache hit rate, query latency, payload size, image failures
 
 Checkout
 
-Quote success, order conversion, price-change rejection, duplicate prevention
+Quote success, out-of-radius rejection, unavailable item rate
 
-Payment
+Ordering
 
-Authorization/capture success, webhook delay, pending age, reconciliation mismatch
+Creation success, duplicate replay count, creation latency
 
 Restaurant
 
-Acceptance rate/time, rejection reason, preparation duration
+Acceptance time, preparation time, rejection/cancellation reasons
 
-Delivery
+Database
 
-Assignment time, offer acceptance, pickup delay, delivery duration/failure
+Connection pool, query latency, slow queries, transaction failures
 
-Workers
+Notifications
 
-Queue depth/age, attempts, dead-letter count, processing latency
+Attempts, latency, failures, retry age
 
-Providers
+Runtime
 
-Availability, latency, timeout/error rate by provider
+CPU, memory, event-loop lag, restarts, cold starts
 
-Example initial service objectives, to be revised with real traffic:
+Initial service objectives
 
-99.9% monthly availability for authenticated order and tracking APIs.
+99.9% monthly availability for menu, order creation, and order tracking on an always-on production plan.
 
-p95 under 500 ms for ordinary API reads, excluding external-provider latency.
+99% of committed orders visible in the admin queue within 10 seconds.
 
-99% of verified payment webhooks reflected in order state within 60 seconds.
+Zero accepted duplicate orders for the same idempotency scope/key.
 
-99% of notification jobs attempted within 30 seconds; notification delivery itself is not guaranteed.
+99% of status transitions visible to an active customer within 30 seconds while polling is enabled.
 
-Alerts
+Alert on customer impact: elevated checkout errors, rising order-creation latency, database connection exhaustion, orders stuck in PENDING, and notification backlog age. Do not page on a single transient failure.
 
-Alert on user-impacting symptoms: elevated checkout failure, payment pending-age growth, orders stuck in a state, stale queue age, increased restaurant rejection, or delivery assignment exhaustion. A single transient provider error should not page anyone.
-
-20. Deployment architecture
+19. Deployment
 
 flowchart TB
-    Internet["Internet"] --> Edge["DNS, CDN and WAF"]
-    Edge --> LB["Load balancer"]
-    LB --> AppA["Application instance A"]
-    LB --> AppB["Application instance B"]
-    Queue[("Durable queue")] --> WorkerA["Worker instance A"]
-    Queue --> WorkerB["Worker instance B"]
-    AppA --> Primary[("Managed primary database")]
-    AppB --> Primary
-    WorkerA --> Primary
-    WorkerB --> Primary
-    Primary --> Replica[("Read replica / backup target")]
-    AppA --> Cache[("Managed cache")]
-    AppB --> Cache
+    Internet["Internet"] --> TLS["TLS edge / reverse proxy"]
+    TLS --> APIA["API instance"]
+    APIA --> Atlas[("MongoDB Atlas")]
+    APIA --> Cache[("Redis when required")]
+    APIA --> Notify["Notification provider"]
+    CI["CI pipeline"] --> Registry["Versioned artifact"]
+    Registry --> APIA
 
-Deployment rules
+Environment separation
 
-Stateless application instances run across at least two failure zones where supported.
+Use separate development, staging, and production credentials and databases. Never use production customer data in development unless irreversibly anonymized.
 
-Database schema migrations are backward compatible and run separately from application startup.
+Release process
 
-Use rolling or canary deployments with automated health checks and rollback.
+Lint, type-check, and run unit/integration/security tests.
 
-Pin dependency versions and scan application/container artifacts.
+Build an immutable versioned artifact.
 
-Keep separate development, staging, and production environments and credentials.
+Run backward-compatible database/index migrations separately.
 
-Production data is not copied into development unless irreversibly anonymized.
+Deploy to staging and run smoke plus critical E2E tests.
 
-Backups are encrypted, retention is documented, and restoration is tested.
+Deploy production with health checks and rollback criteria.
+
+Verify menu, quote, order creation, admin transition, and telemetry.
+
+Monitor errors and latency during the release window.
+
+Never run destructive migrations automatically during application startup.
 
 Recovery targets
 
-Initial targets, subject to business approval:
-
 Measure
 
-Target
+Initial target
 
-Recovery point objective (RPO)
+Transactional-data RPO
 
-5 minutes or less for transactional data
+≤ 15 minutes, subject to Atlas plan capability
 
-Recovery time objective (RTO)
+Ordering RTO
 
-60 minutes or less for ordering
+≤ 60 minutes
 
-Backup restoration test
+Backup restore exercise
 
 At least quarterly
+
+Release rollback decision
+
+Within 15 minutes of critical regression
+
+Production claims require an always-on backend. If the selected Render plan sleeps, document it as a demo constraint rather than hiding the resulting cold-start latency.
+
+20. Configuration
+
+Validate configuration at startup and fail fast on missing or malformed required values.
+
+NODE_ENV
+PORT
+MONGODB_URI
+JWT_ACCESS_SECRET
+JWT_REFRESH_SECRET
+ACCESS_TOKEN_TTL
+REFRESH_TOKEN_TTL
+RESTAURANT_LATITUDE
+RESTAURANT_LONGITUDE
+DELIVERY_RADIUS_KM=15
+DELIVERY_FEE_PAISE=3000
+FREE_DELIVERY_THRESHOLD_PAISE=29900
+DEFAULT_ETA_MINUTES=35
+ALLOWED_ORIGINS
+LOG_LEVEL
+NOTIFICATION_PROVIDER_*
+REDIS_URL                 # optional until enabled
+
+Rules:
+
+Never commit .env or real secrets.
+
+Maintain .env.example with safe placeholders.
+
+Rotate leaked secrets immediately; deleting them from the latest commit is insufficient.
+
+Version business-rule changes and audit who changed them.
+
+Keep timeout, retry, and rate-limit settings explicit.
 
 21. Testing strategy
 
 Layer
 
-Coverage
+Required coverage
 
 Unit
 
-Pricing, promotion rules, state transitions, cancellation/refund policy, serviceability
+Price/fee boundary, radius boundary, transition guards, authorization policies
 
 Property-based
 
-Money invariants, promotion combinations, state-machine legality, idempotency
+Money invariants, arbitrary cart quantities, state-machine legality
 
 Integration
 
-Database transactions, outbox, cache invalidation, webhook deduplication
+Mongo transactions, unique indexes, idempotency replay, ownership queries
 
 Contract
 
-Payment/maps/messaging provider request and webhook schemas
+Flutter/API DTOs, error envelopes, enum compatibility
 
 End-to-end
 
-Browse → quote → pay/COD → accept → prepare → assign → deliver/refund
+Browse → quote → COD order → accept → prepare → dispatch → deliver
 
 Concurrency
 
-Duplicate checkout, competing staff updates, competing delivery acceptance
-
-Failure injection
-
-Provider timeout, queue delay, cache loss, worker crash, database failover
+Double submit, racing admin transitions, idempotency key reuse
 
 Security
 
-Authorization matrix, tenant/branch isolation, rate limiting, upload checks, dependency scanning
+Broken object authorization, NoSQL injection, token expiry/revocation, rate limits
+
+Failure
+
+Database disconnect, notification failure, cache loss, lost client response
 
 Performance
 
-Peak menu reads, checkout write load, location update volume, worker backlog recovery
+Menu read, order write, admin polling, reconnect surge
 
 Recovery
 
-Backup restore, rollback, replay-safe queue recovery, reconciliation after outage
+Backup restore and rollback drill
 
-Release-blocking scenarios include duplicate payment/order creation, unauthorized order access, invalid state transitions, incorrect totals, missing refund initiation after prepaid rejection, and inability to recover from provider timeout.
+Release-blocking tests
 
-22. Suggested repository structure
+Client price tampering cannot change the persisted total.
+
+Repeating the same order request cannot create a second order.
+
+A different customer cannot read an order by changing its ID or phone number.
+
+A stale staff action cannot overwrite a newer state.
+
+Terminal states cannot be reopened.
+
+An address over 15 km cannot create a delivery order.
+
+Denying location permission still permits manual address entry.
+
+The app requests no background-location permission.
+
+Admin access fails with an expired, revoked, or altered token.
+
+A completed order no longer exposes precise coordinates to operational clients.
+
+Load-test scenario
+
+Test with realistic payloads and ramp traffic instead of reporting only a single peak number. Record environment, dataset size, concurrency, duration, error rate, p95/p99 latency, database utilization, and bottleneck. Do not compare staging results to a production SLO without stating the hardware/plan.
+
+22. Repository structure
 
 food-delivery-system/
 ├── apps/
-│   ├── api/
-│   ├── worker/
-│   ├── customer-web/
-│   ├── operations-web/
-│   └── delivery-app/
-├── modules/
-│   ├── identity/
-│   ├── catalog/
-│   ├── pricing/
-│   ├── ordering/
-│   ├── payment/
-│   ├── fulfillment/
-│   ├── delivery/
-│   ├── notification/
-│   └── support/
-├── packages/
-│   ├── contracts/
-│   ├── database/
-│   ├── observability/
-│   └── test-support/
-├── infrastructure/
+│   ├── customer_flutter/
+│   └── backend/
+│       └── src/
+│           ├── config/
+│           ├── middleware/
+│           ├── modules/
+│           │   ├── identity/
+│           │   ├── catalog/
+│           │   ├── pricing/
+│           │   ├── ordering/
+│           │   └── notification/
+│           ├── shared/
+│           └── server.ts
 ├── docs/
-│   └── design.md
-└── README.md
+│   ├── DESIGN.md
+│   ├── API.md
+│   ├── PRIVACY.md
+│   └── runbooks/
+├── scripts/
+├── .github/workflows/
+├── .env.example
+├── README.md
+└── SECURITY.md
 
-Exact framework names are intentionally omitted because no implementation constraints were supplied. The design requires a transactional relational database, a durable queue, a cache, object storage, and provider adapters; it does not require a specific vendor.
+Repository layout should follow the real repository. Do not reorganize working code solely to match this example; migrate incrementally with tests.
 
-23. Configuration
+23. Operational runbooks
 
-Configuration should be validated at startup and separated into:
+At minimum, maintain short runbooks for:
 
-environment identity and public URLs;
+Incident
 
-database/cache/queue connection references;
+Required actions
 
-secret references for payment and messaging providers;
+Order reported but absent
 
-branch timezone, hours, service zones, and capacity limits;
+Search by correlation/idempotency key; verify commit; never manually recreate without checking
 
-pricing, tax, delivery, cancellation, and refund policies;
+Duplicate order report
 
-retry limits, timeouts, circuit-breaker thresholds, and feature flags;
+Freeze affected operation, compare idempotency records, cancel only after owner confirmation
 
-retention periods and observability sampling.
+Orders stuck in PENDING
 
-Business configuration changes must be versioned and audited. Orders keep the configuration-derived results they were created with; changing a fee or tax rule does not rewrite history.
+Check admin visibility, notification health, age threshold, and contact procedure
 
-24. Scaling path
+Database outage
 
-Scale in this order:
+Fail closed, communicate outage, restore connectivity, verify writes before reopening
 
-Add indexes and fix inefficient queries.
+Secret exposure
 
-Cache safe read-heavy data such as published menus.
+Revoke/rotate, invalidate sessions if affected, audit access, remove from history safely
 
-Scale stateless API and worker instances horizontally.
+Bad release
 
-Partition job queues by workload priority.
+Stop rollout, roll back compatible artifact, verify critical flow, preserve evidence
 
-Add database read replicas for non-transactional reporting.
+Location/privacy complaint
 
-Archive or partition high-volume location and event history.
+Restrict access, preserve audit evidence, follow deletion/support policy
 
-Extract a module only when measurements show independent scaling or reliability is needed.
+Data recovery
 
-Likely first extraction candidates are notifications, live delivery tracking, and analytics because they can tolerate asynchronous boundaries. Ordering, pricing, and payment should remain together until a compelling constraint outweighs the consistency cost.
+Restore to isolated environment, verify consistency, approve controlled cutover
 
-25. Open decisions before implementation
+Each runbook names an owner, trigger, exact checks, rollback/containment actions, and post-incident follow-up.
+
+24. Hardening roadmap
+
+P0 — before production-grade claims
+
+Remove or protect phone-based order lookup.
+
+Add server-side order idempotency and unique indexes.
+
+Make prices and the 15 km check server-authoritative.
+
+Enforce the canonical state machine and optimistic concurrency.
+
+Remove 24-hour TTL deletion from full order records.
+
+Add structured logging, correlation IDs, health endpoints, and critical alerts.
+
+Verify no background-location permission in the release manifest.
+
+Use an always-on backend or explicitly describe cold starts as a demo limitation.
+
+Add ownership, concurrency, and failure-path release tests.
+
+P1 — operational reliability
+
+Add customer identity verification and secure order history.
+
+Add refresh-token rotation/revocation for admin sessions.
+
+Add audit logs and coordinate redaction after terminal states.
+
+Add menu HTTP caching/image optimization and query-plan verification.
+
+Automate CI checks, staging smoke tests, rollback, and backup restore drills.
+
+Add reliable notification retries with deduplication.
+
+P2 — scale only after measurement
+
+Redis for shared cache/rate limits when multiple instances or measured load requires it.
+
+Durable outbox/queue for notifications and analytics.
+
+WebSocket/SSE updates when polling cost or latency becomes material.
+
+Multiple branches only after branch isolation, configuration, and operational ownership are designed.
+
+Online payments only with a separate payment state machine, verified webhooks, reconciliation, refund ledger, and compliance review.
+
+25. Architecture decisions
+
+ID
 
 Decision
 
-Why it matters
+Reason
 
-Target country, currency, and tax jurisdiction
+Revisit when
 
-Changes pricing, receipts, privacy, payment, and refund rules
+ADR-001
 
-Web, native mobile, or both
+Modular monolith
 
-Changes notification, location, and offline design
+Lowest operational complexity with strong consistency
 
-COD availability and limits
+Independent scaling/ownership is measured
 
-Changes fraud, reconciliation, and delivery workflows
+ADR-002
 
-In-house versus third-party delivery
+MongoDB remains current store
 
-Changes assignment, tracking, support, and settlement
+Matches deployed stack; transactions/indexes can support current scope
 
-Single versus multiple branches at launch
+Query/transaction constraints are proven
 
-Determines serviceability and staff scoping needs
+ADR-003
 
-Inventory precision
+COD only
 
-Simple availability flag versus ingredient/quantity reservation
+Matches product behavior; avoids false payment complexity
 
-Cancellation/refund policy
+Owner approves online payments
 
-Determines allowed state transitions and compensation
+ADR-004
 
-Delivery verification
+Polling is acceptable initially
 
-OTP, signature, photo, geofence, or approved combination
+Simple and reliable at current scale
 
-Required languages and accessibility level
+Cost or freshness SLO is missed
 
-Affects content model, UI, testing, and support
+ADR-005
 
-Compliance and retention jurisdiction
+No background location
 
-Determines consent, export/deletion, audit, and storage policy
+Not needed for customer delivery address; reduces privacy/policy risk
 
-Expected peak traffic and order volume
+A real rider-tracking product is designed
 
-Needed to set capacity and service objectives credibly
+ADR-006
+
+Keep order records; minimize coordinates separately
+
+Audit/support needs differ from precise-location retention
+
+Legal/business policy changes
+
+ADR-007
+
+Redis is conditional
+
+Cache cannot compensate for sleeping hosts or bad queries
+
+Measurements show repeated read pressure
 
 26. Definition of done
 
-The first production release is ready only when:
+The system may be called production-grade only when all applicable items are evidenced:
 
-all critical state transitions and authorization rules are enforced server-side;
+Deployment matches this document, or differences are recorded as ADRs.
 
-totals are reproducible from immutable order snapshots;
+Server recalculates prices, delivery fee, and 15 km serviceability.
 
-order and payment mutations are idempotent;
+Duplicate-order tests pass under retries and concurrent requests.
 
-webhook verification, deduplication, and reconciliation are operational;
+Customer ownership and admin authorization tests pass.
 
-prepaid rejection/cancellation reliably starts a refund workflow;
+Every order transition uses the canonical state machine and version guard.
 
-provider failures have tested recovery paths;
+Full order records are not deleted after 24 hours.
 
-dashboards and alerts cover checkout, payment, fulfillment, delivery, and queues;
+Precise coordinates are hidden after terminal order states and retained by policy.
 
-backup restoration has been tested;
+Secrets are outside source control and rotation has been tested.
 
-security and privacy reviews are complete;
+Release manifest contains foreground location only.
 
-operational runbooks exist for stuck payments, stuck orders, failed delivery, provider outage, rollback, and data recovery.
+Structured logs, metrics, dashboards, and actionable alerts are live.
+
+Production-like load test meets documented budgets.
+
+Backup restoration and release rollback have been tested.
+
+Critical runbooks have owners and were exercised.
+
+Privacy policy, store disclosure, and actual runtime behavior agree.
+
+CI blocks failures in type checks, tests, security checks, and builds.
+
+A post-deployment smoke test verifies menu, quote, COD order, admin transition, and customer tracking.
+
+Production readiness is evidence, not a label. Any unchecked P0 control must be presented as an open risk rather than silently assumed complete.
