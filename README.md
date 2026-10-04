@@ -16,6 +16,8 @@ Built with **Flutter, Riverpod, Node.js, Express, TypeScript, MongoDB Atlas, Sup
 
 ## Overview
 
+[![Architecture diagram of bipulkumar62/fooddelivery-system](https://gitdiagram.com/bipulkumar62/fooddelivery-system/diagram.png)](https://gitdiagram.com/bipulkumar62/fooddelivery-system?utm_source=readme&utm_medium=picture)
+
 **Food Delivery System** is a full-stack ordering and restaurant-management application built and deployed for a real local restaurant.
 
 Customers can browse categorized menu items, check live availability, manage their cart, provide a delivery address or foreground location, and place secure **Cash on Delivery** orders.
